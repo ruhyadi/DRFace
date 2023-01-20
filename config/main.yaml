@@ -16,7 +16,7 @@ hydra:
 
 # override logger level
 logger:
-  level: INFO
+  level: DEBUG
 
 # service mode
 mode: api 

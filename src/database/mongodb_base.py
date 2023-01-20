@@ -14,7 +14,7 @@ ROOT = pyrootutils.setup_root(
 from typing import Optional
 
 import pymongo
-from pymongo.results import InsertOneResult
+from pymongo.results import InsertOneResult, InsertManyResult, UpdateResult
 
 
 from src.utils.logger import get_logger
@@ -41,6 +41,8 @@ class MongoDBBase:
         self.password = password
         self.db = db
 
+        self.connect()
+
     def connect(self) -> None:
         """Connec to MongoDB."""
         try:
@@ -62,11 +64,10 @@ class MongoDBBase:
         self.client.close()
         log.log(22, f"Disconnected from MongoDB: {self.host}:{self.port}")
 
-    def insert_one(self, database: str, collection: str, data: dict) -> Optional[InsertOneResult]:
+    def insert_one(self, collection: str, data: dict) -> Optional[InsertOneResult]:
         """Insert one document into MongoDB.
 
         Args:
-            database (str): MongoDB database
             collection (str): MongoDB collection
             data (dict): Data to insert
 
@@ -75,37 +76,146 @@ class MongoDBBase:
 
         Examples:
             >>> data = {"name": "Didi Ruhyadi", "age": 23}
-            >>> insert_one("mydb", "users", data)
+            >>> insert_one("users", data)
             2022-01-03 12:00:00,000 [DEBUG] Inserted document: 5ff1e1c1b3c1b4b9b8b8b8b8
         """
-        document = self.db[database][collection].insert_one(data)
+        document = self.db[collection].insert_one(data)
         log.debug(f"Inserted document: {document.inserted_id}")
         return document
 
-    def insert_many(self, database: str, collection: str, data: list) -> list[InsertOneResult]:
+    def insert_many(self, collection: str, data: list) -> InsertManyResult:
         """Insert many documents into MongoDB.
 
         Args:
-            database (str): MongoDB database
             collection (str): MongoDB collection
             data (list): Data to insert
 
         Returns:
-            list[InsertOneResult]: List of InsertOneResult objects
+            InsertManyResult: InsertManyResult objects
 
         Examples:
             >>> data = [
             ...     {"name": "Didi Ruhyadi", "age": 23},
             ...     {"name": "Sherlin Regiena", "age": 23},
             ... ]
-            >>> insert_many("mydb", "users", data)
+            >>> insert_many("users", data)
             2022-01-03 12:00:00,000 [DEBUG] Inserted 2 documents
         """
-        documents = self.db[database][collection].insert_many(data)
+        documents = self.db[collection].insert_many(data)
         log.debug(f"Inserted {len(documents.inserted_ids)} documents")
         return documents
 
+    def find_one(self, collection: str, query: dict) -> dict:
+        """Find one document from MongoDB.
+
+        Args:
+            collection (str): MongoDB collection
+            query (dict): Query to find
+
+        Returns:
+            dict: Document
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> find_one("users", query)
+            2022-01-03 12:00:00,000 [DEBUG] Found 1 document
+            {'_id': ObjectId('5ff1e1c1b3c1b4b9b8b8b8b8'), 'name': 'Didi Ruhyadi', 'age': 23}
+        """
+        document = self.db[collection].find_one(query)
+        log.debug(f"Found document with id: {document['_id']}")
+        return document
+
+    def find_many(self, collection: str, query: dict) -> list:
+        """Find many documents from MongoDB.
+
+        Args:
+            collection (str): MongoDB
+            query (dict): Query to find
+
+        Returns:
+            list: Documents
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> find_many("users", query)
+            2022-01-03 12:00:00,000 [DEBUG] Found 1 document
+            [{'_id': ObjectId('5ff1e1c1b3c1b4b9b8b8b8b8'), 'name': 'Didi Ruhyadi', 'age': 23}]
+        """
+        documents = list(self.db[collection].find(query))
+        log.debug(f"Found {len(documents)} documents")
+        return documents
+
+    def update_one(self, collection: str, query: dict, data: dict) -> None:
+        """Update one document from MongoDB.
+
+        Args:
+            collection (str): MongoDB
+            query (dict): Query to find
+            data (dict): Data to update
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> data = {"age": 24}
+            >>> update_one("users", query, data)
+            2022-01-03 12:00:00,000 [DEBUG] Updated 1 document
+        """
+        document = self.db[collection].update_one(query, {"$set": data})
+        log.debug(f"Updated {collection}/{query} document")
+
+    def update_many(self, collection: str, query: dict, data: dict) -> None:
+        """Update many documents from MongoDB.
+
+        Args:
+            collection (str): MongoDB
+            query (dict): Query to find
+            data (dict): Data to update
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> data = {"age": 24}
+            >>> update_many("users", query, data)
+            2022-01-03 12:00:00,000 [DEBUG] Updated 3 documents
+        """
+        documents = self.db[collection].update_many(query, {"$set": data})
+        log.debug(
+            f"Updated {collection}/{query} -> {documents.modified_count} documents"
+        )
+
+    def delete_one(self, collection: str, query: dict) -> None:
+        """Delete one document from MongoDB.
+
+        Args:
+            collection (str): MongoDB
+            query (dict): Query to find
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> delete_one("users", query)
+            2022-01-03 12:00:00,000 [DEBUG] Deleted 1 document
+        """
+        document = self.db[collection].delete_one(query)
+        log.debug(f"Deleted {collection}/{query} -> {document.deleted_count} document")
+
+    def delete_many(self, collection: str, query: dict) -> None:
+        """Delete many documents from MongoDB.
+
+        Args:
+            collection (str): MongoDB
+            query (dict): Query to find
+
+        Examples:
+            >>> query = {"name": "Didi Ruhyadi"}
+            >>> delete_many("users", query)
+            2022-01-03 12:00:00,000 [DEBUG] Deleted 3 documents
+        """
+        documents = self.db[collection].delete_many(query)
+        log.debug(
+            f"Deleted {collection}/{query} -> {documents.deleted_count} documents"
+        )
+
+
 if __name__ == "__main__":
+    """Debugging."""
 
     import hydra
 
@@ -118,7 +228,47 @@ if __name__ == "__main__":
             password=cfg.database.mongodb.password,
             db=cfg.database.mongodb.db,
         )
-        mongodb.connect()
-        mongodb.disconnect()
+
+        # # Insert one document
+        # document = mongodb.insert_one(
+        #     collection="users",
+        #     data={"name": "Didi Ruhyadi", "age": 23},
+        # )
+        # log.info(f"Inserted document: {document.inserted_id}")
+
+        # # Insert many documents
+        # documents = mongodb.insert_many(
+        #     collection="users",
+        #     data=[
+        #         {"name": "Didi Ruhyadi", "age": 23},
+        #         {"name": "Sherlin Regiena", "age": 23},
+        #     ],
+        # )
+        # log.info(f"Inserted documents: {documents.inserted_ids}")
+
+        # # Find one document
+        # document = mongodb.find_one(collection="users", query={"name": "Didi Ruhyadi"})
+        # log.info(f"Found document: {document}")
+
+        # # Find many documents
+        # documents = mongodb.find_many(collection="users", query={"name": "Didi Ruhyadi"})
+        # log.info(f"Found documents: {documents}")
+
+        # # Update one document
+        # mongodb.update_one(
+        #     collection="users",
+        #     query={"name": "Didi Ruhyadi"},
+        #     data={"age": 24},
+        # )
+
+        # # Update many documents
+        # mongodb.update_many(
+        #     collection="users",
+        #     query={"name": "Didi Ruhyadi"},
+        #     data={"age": 24},
+        # )
+
+        # Delete one document
+        # mongodb.delete_one(collection="users", query={"name": "Didi Ruhyadi"})
 
     main()

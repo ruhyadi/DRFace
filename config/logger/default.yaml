@@ -1,6 +1,6 @@
 # Logging configuration for the default logger
 
-level: INFO # Log level
+level: DEBUG # Log level
 
 # Custom log levels
 custom_level:
