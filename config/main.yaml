@@ -1,0 +1,21 @@
+# Main hydra configurations
+
+# Default configurations
+defaults:
+  - _self_
+  - logger: [default] 
+  - override hydra/hydra_logging: none
+  - override hydra/job_logging: none
+
+# Override hydra output directory
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+
+# override logger level
+logger:
+  level: INFO
+
+# service mode
+mode: api 

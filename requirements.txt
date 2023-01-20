@@ -1,0 +1,21 @@
+# DRFace requirements
+# Usage: pip install -r requirements.txt
+
+# Cofigs & Base
+hydra-core==1.3.0 # hydra configuration
+pyrootutils # standardizing the project root setup
+colorlog # logging with colors
+tqdm # progress bar
+python-dotenv # .env file support
+
+# APIs
+fastapi # API framework
+requests # HTTP requests
+uvicorn # ASGI server
+gunicorn # WSGI server
+python-multipart # multipart/form-data
+
+# Computation
+numpy # everyone knows numpy
+Pillow # image processing but brrrs
+opencv-python # image processing
