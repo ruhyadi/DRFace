@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  drface-mongodb:
+    container_name: drface-mongodb
+    image: mongo:6.0.3
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - $PWD/data/mongodb:/data/db
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    expose:
+      - ${MONGO_PORT}
+    command: mongod --port ${MONGO_PORT}

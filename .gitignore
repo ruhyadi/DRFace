@@ -130,3 +130,9 @@ dmypy.json
 
 # Folder to ignore
 _TEMPLATE/
+_HYDRA/
+_REPORT/
+tmp/
+data/
+log/
+sample.py

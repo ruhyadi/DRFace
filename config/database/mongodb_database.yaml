@@ -1,0 +1,10 @@
+# Mongodb configs
+
+# import .env config
+
+mongodb:
+  host: localhost
+  port: ${oc.env:MONGO_PORT}
+  user: ${oc.env:MONGO_INITDB_ROOT_USERNAME}
+  password: ${oc.env:MONGO_INITDB_ROOT_PASSWORD}
+  db: drface
