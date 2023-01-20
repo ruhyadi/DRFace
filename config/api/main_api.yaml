@@ -1,0 +1,9 @@
+# Main API Configuraiton
+
+# Authentication configurations
+auth:
+  secret_key: xxx # secret key for JWT
+  algorithm: HS256  # authentication algorithm
+  token_expiration: 3600 # seconds
+  encrypt_scheme: # encryption scheme for password hashing
+    - bcrypt # bcrypt, pbkdf2_sha256, sha256_crypt, sha512_crypt, md5_crypt, plaintext

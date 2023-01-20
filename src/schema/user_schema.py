@@ -13,6 +13,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field
 
 from src.schema.common_schema import PyObjectId
+from src.utils import exclude_fields
 
 
 class UserSchema(BaseModel):
@@ -33,3 +34,25 @@ class UserSchema(BaseModel):
                 "password": "satuduatiga",
             }
         }
+
+class UserRegisterResponse(UserSchema):
+    """User register response schema."""
+
+    class Config:
+        fields = exclude_fields(["id", "password"])
+        schema_extra = {
+            "example": {
+                "username": "didiruhyadi",
+            }
+        }
+
+
+if __name__ == "__main__":
+    """Debugging."""
+
+    user = UserSchema(
+        id="63b3e159ea836a6d304ca105",
+        username="didiruhyadi",
+        password="satuduatiga",
+    )
+    print(user)

@@ -83,7 +83,7 @@ class MongoDBBase:
         log.debug(f"Inserted document: {document.inserted_id}")
         return document
 
-    def insert_many(self, collection: str, data: list) -> InsertManyResult:
+    def insert_many(self, collection: str, data: list) -> Optional[InsertManyResult]:
         """Insert many documents into MongoDB.
 
         Args:
