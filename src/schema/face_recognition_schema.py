@@ -69,7 +69,7 @@ class FaceEmbeddingSchema(BaseModel):
     """Face embedding schema."""
 
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    name: str = Field(..., description="Face name")
+    name: str = Field(None, description="Face name")
     embedding: list = Field(..., description="Face embedding")
 
     class Config:

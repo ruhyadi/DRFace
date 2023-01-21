@@ -17,6 +17,7 @@ from omegaconf import DictConfig
 from src.database.mongodb_base import MongoDBBase
 from src.schema.user_schema import UserSchema
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
+from src.utils.math import find_cosine_distance
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
 
@@ -110,7 +111,7 @@ class MongoDBAPI(MongoDBBase):
             exception.Conflict: face embedding already exists
         """
         # check if face embedding exists
-        if await self.check_embedding(face_embd.name) and not is_update:
+        if await self.check_face_database(face_embd.name) and not is_update:
             raise exception.Conflict(
                 f"Face embedding for {face_embd.name} already exists"
             )
@@ -122,9 +123,9 @@ class MongoDBAPI(MongoDBBase):
         log.log(22, f"Face embedding for {face_embd['name']} inserted successfully")
         return FaceEmbeddingSchema(**face_embd)
 
-    async def check_embedding(self, name: str) -> bool:
+    async def check_face_database(self, name: str) -> bool:
         """
-        Check if face embedding exists in MongoDB.
+        Check if name exists in face embedding database.
 
         Args:
             name (str): name
@@ -134,3 +135,47 @@ class MongoDBAPI(MongoDBBase):
         """
         name = self.find_one("faces", {"name": name})
         return True if name is not None else False
+
+    async def find_face(
+        self,
+        face_embd: FaceEmbeddingSchema,
+        min_dist_thres: float = 0.5,
+        dist_method: str = "cosine",
+    ) -> FaceEmbeddingSchema:
+        """
+        Find name of face embedding in face embedding database with KNN.
+
+        Args:
+            face_embd (FaceEmbeddingSchema): face embedding
+
+        Returns:
+            FaceEmbeddingSchema: face embedding
+
+        Raises:
+            exception.NotFound: face embedding does not exist
+        """
+        gt_face_embd = await self.load_gt_embeddings()
+        if len(gt_face_embd) == 0:
+            raise exception.NotFound("Face embedding database is empty")
+
+        # find nearest neighbor
+        dist = []
+        for gt_embd in gt_face_embd:
+            if dist_method == "cosine":
+                dist.append(
+                    find_cosine_distance(face_embd.embedding, gt_embd["embedding"])
+                )
+        min_dist = min(dist)
+        min_dist_idx = dist.index(min_dist)
+        if min_dist > min_dist_thres:
+            raise exception.NotFound("Face not matched with any face in database")
+        return FaceEmbeddingSchema(**gt_face_embd[min_dist_idx])
+
+    async def load_gt_embeddings(self) -> list:
+        """
+        Load all face ground truth embeddings from MongoDB.
+
+        Returns:
+            list: list of face embeddings
+        """
+        return self.find_many("faces", {})

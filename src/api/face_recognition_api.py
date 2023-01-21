@@ -108,6 +108,56 @@ class FaceRecognitionAPI(BaseAPI):
 
             return {"message": "Face registered"}
 
+        @self.router.post(
+            "/api/face/recognize",
+            tags=["face"],
+            summary="Recognize face",
+            description="Recognize face",
+            dependencies=[Depends(self.bearer_auth)],
+        )
+        async def face_recognize(request: Request, image: UploadFile = File(...)):
+            """
+            Recognize face.
+
+            Args:
+                image (UploadFile): Image file.
+
+            Raise:
+                exceptions.NotFound: No face detected.
+                exceptions.BadRequest: Multiple faces detected.
+            """
+            start_request = t.now_iso(utc=True)
+            log.log(24, f"Request from {request.client.host} to recognize face")
+
+            # preprocess image
+            img = await self.preprocess_raw_img(await image.read())
+
+            # detect face
+            face_dets = self.face_detection.detect_face(img)
+            if not face_dets:
+                raise exceptions.NotFound("No face detected")
+            if len(face_dets) > 1:
+                raise exceptions.BadRequest("Multiple faces detected")
+
+            # recognize face
+            face_embd = self.face_recognition.get_embedding(face_dets[0].face)
+            face_embd = FaceEmbeddingSchema(embedding=face_embd)
+            face_embd = await self.mongodb.find_face(
+                face_embd=face_embd,
+                min_dist_thres=self.cfg.engine.recognizer.min_dist_thres,
+                dist_method=self.cfg.engine.recognizer.dist_method,
+            )
+
+            end_request = t.now_iso(utc=True)
+            log.log(
+                24,
+                f"Request to recognize face completed in {t.diff(start_request, end_request)}",
+            )
+
+            return {
+                "name": face_embd.name,
+            }
+
         app.include_router(self.router)
 
     async def preprocess_raw_img(self, raw_img: bytes) -> np.ndarray:

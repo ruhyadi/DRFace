@@ -1,0 +1,5 @@
+# Face recognition engine configs
+
+recognizer:
+  min_dist_thres: 0.5 # minimum distance for face recognition
+  dist_method: cosine # distance method for face recognition
