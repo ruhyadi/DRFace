@@ -136,3 +136,4 @@ tmp/
 data/
 log/
 sample.py
+weights/ssd_detector/*
