@@ -42,6 +42,7 @@ class FaceRecognitionAPI(BaseAPI):
         self.router = APIRouter()
 
         self.setup_model()
+        self.setup()
 
     def setup_model(self) -> None:
         """Setup face detection and face recogntiion model."""
@@ -95,9 +96,9 @@ class FaceRecognitionAPI(BaseAPI):
             face_embd = self.face_recognition.get_embedding(face_dets[0].face)
             face_embd = FaceEmbeddingSchema(
                 name=name,
-                embedding=face_embd.tolist(),
+                embedding=face_embd,
             )
-            self.mongodb.insert_face(face_embd)
+            face_embd = await self.mongodb.insert_face(face_embd)
 
             end_request = t.now_iso(utc=True)
             log.log(
@@ -106,6 +107,8 @@ class FaceRecognitionAPI(BaseAPI):
             )
 
             return {"message": "Face registered"}
+
+        app.include_router(self.router)
 
     async def preprocess_raw_img(self, raw_img: bytes) -> np.ndarray:
         """

@@ -92,7 +92,9 @@ class Timer:
             1000.0
 
         """
-        return (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() * 1000
+        start = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        end = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return (end - start).total_seconds() * 1000
 
 if __name__ == "__main__":
     """Debugging."""

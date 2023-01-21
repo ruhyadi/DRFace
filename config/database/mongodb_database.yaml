@@ -3,7 +3,8 @@
 # import .env config
 
 mongodb:
-  host: drface-mongodb
+  # host: drface-mongodb
+  host: localhost
   port: ${oc.env:MONGO_PORT}
   user: ${oc.env:MONGO_INITDB_ROOT_USERNAME}
   password: ${oc.env:MONGO_INITDB_ROOT_PASSWORD}

@@ -10,6 +10,7 @@ ROOT = pyrootutils.setup_root(
 )
 
 import numpy as np
+from bson import ObjectId
 from pydantic import BaseModel, Field
 
 from src.schema.common_schema import PyObjectId
@@ -70,6 +71,11 @@ class FaceEmbeddingSchema(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     name: str = Field(..., description="Face name")
     embedding: list = Field(..., description="Face embedding")
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
