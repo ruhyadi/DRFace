@@ -123,7 +123,7 @@ class BaseAPI:
             response_model=CurrentUser,
             dependencies=[Depends(self.bearer_auth)],
         )
-        async def get_current_user(
+        async def get_current_user_bearer(
             current_user: CurrentUser = Depends(self.bearer_auth),
         ) -> CurrentUser:
             """Get current user
@@ -144,7 +144,7 @@ class BaseAPI:
             response_model=CurrentUser,
             dependencies=[Depends(self.basic_auth)],
         )
-        async def get_current_user(
+        async def get_current_user_basic(
             current_user: CurrentUser = Depends(self.basic_auth),
         ) -> CurrentUser:
             """Get current user

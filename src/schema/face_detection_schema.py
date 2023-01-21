@@ -10,6 +10,10 @@ ROOT = pyrootutils.setup_root(
 )
 
 import numpy as np
+from bson import ObjectId
+from pydantic import BaseModel, Field
+
+from src.schema.common_schema import PyObjectId
 
 
 class FaceDetectionSchema:

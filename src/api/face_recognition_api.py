@@ -20,6 +20,7 @@ from PIL import Image
 from src.api.base_api import BaseAPI
 from src.engine.detector.ssd_detector import SSDFaceDetector
 from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
+from src.schema.auth_schema import CurrentUser
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
@@ -63,7 +64,10 @@ class FaceRecognitionAPI(BaseAPI):
             dependencies=[Depends(self.bearer_auth)],
         )
         async def face_register(
-            request: Request, name: str, image: UploadFile = File(...)
+            request: Request,
+            name: str,
+            image: UploadFile = File(...),
+            current_user: CurrentUser = Depends(self.bearer_auth),
         ):
             """
             Register face.
@@ -95,10 +99,11 @@ class FaceRecognitionAPI(BaseAPI):
             # register face
             face_embd = self.face_recognition.get_embedding(face_dets[0].face)
             face_embd = FaceEmbeddingSchema(
+                user_id=(await self.mongodb.get_user(current_user.username)).id,
                 name=name,
                 embedding=face_embd,
             )
-            face_embd = await self.mongodb.insert_face(face_embd)
+            face_embd = await self.mongodb.insert_face(face_embd, is_update=True)
 
             end_request = t.now_iso(utc=True)
             log.log(
@@ -106,7 +111,12 @@ class FaceRecognitionAPI(BaseAPI):
                 f"Request to register face of {name} completed in {t.diff(start_request, end_request)}",
             )
 
-            return {"message": "Face registered"}
+            return {
+                "result": {
+                    "status": "success",
+                    "name": face_embd.name,
+                }
+            }
 
         @self.router.post(
             "/api/face/recognize",
@@ -115,7 +125,11 @@ class FaceRecognitionAPI(BaseAPI):
             description="Recognize face",
             dependencies=[Depends(self.bearer_auth)],
         )
-        async def face_recognize(request: Request, image: UploadFile = File(...)):
+        async def face_recognize(
+            request: Request, 
+            image: UploadFile = File(...),
+            current_user: CurrentUser = Depends(self.bearer_auth),
+            ):
             """
             Recognize face.
 
@@ -143,6 +157,7 @@ class FaceRecognitionAPI(BaseAPI):
             face_embd = self.face_recognition.get_embedding(face_dets[0].face)
             face_embd = FaceEmbeddingSchema(embedding=face_embd)
             face_embd = await self.mongodb.find_face(
+                current_user=current_user,
                 face_embd=face_embd,
                 min_dist_thres=self.cfg.engine.recognizer.min_dist_thres,
                 dist_method=self.cfg.engine.recognizer.dist_method,

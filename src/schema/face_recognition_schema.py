@@ -69,6 +69,7 @@ class FaceEmbeddingSchema(BaseModel):
     """Face embedding schema."""
 
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    user_id: PyObjectId = Field(..., description="User ID")
     name: str = Field(None, description="Face name")
     embedding: list = Field(..., description="Face embedding")
 
@@ -89,4 +90,32 @@ class FaceEmbeddingSchema(BaseModel):
         return EmbeddingGTSchema(
             name=self.name,
             embedding=self.embedding,
+        )
+
+
+class FaceRecognitionResponse(BaseModel):
+    """Face recognition API response schema."""    
+    name: str = Field(None, description="Face name")
+    distance: float = Field(None, description="Face distance")
+    dist_method: str = Field(None, description="Distance method")
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "name": self.name,
+            "distance": self.distance,
+            "dist_method": self.dist_method,
+        }
+
+    def to_face_recognition_schema(self) -> FaceRecognitionSchema:
+        """Convert to face recognition schema."""
+        return FaceRecognitionSchema(
+            face=None,
+            name=self.name,
+            distance=self.distance,
+            dist_method=self.dist_method,
         )

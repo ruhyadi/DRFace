@@ -145,7 +145,7 @@ class MongoDBBase:
         log.debug(f"Found {len(documents)} documents") if documents else None
         return documents
 
-    def update_one(self, collection: str, query: dict, data: dict) -> None:
+    def update_one(self, collection: str, query: dict, data: dict):
         """Update one document from MongoDB.
 
         Args:
@@ -159,10 +159,11 @@ class MongoDBBase:
             >>> update_one("users", query, data)
             2022-01-03 12:00:00,000 [DEBUG] Updated 1 document
         """
-        document = self.db[collection].update_one(query, {"$set": data})
+        document = self.db[collection].update_one(query, {"$set": data}, upsert=True)
         log.debug(f"Updated {collection}/{query} document")
+        return document
 
-    def update_many(self, collection: str, query: dict, data: dict) -> None:
+    def update_many(self, collection: str, query: dict, data: dict):
         """Update many documents from MongoDB.
 
         Args:
@@ -176,10 +177,11 @@ class MongoDBBase:
             >>> update_many("users", query, data)
             2022-01-03 12:00:00,000 [DEBUG] Updated 3 documents
         """
-        documents = self.db[collection].update_many(query, {"$set": data})
+        documents = self.db[collection].update_many(query, {"$set": data}, upsert=True)
         log.debug(
             f"Updated {collection}/{query} -> {documents.modified_count} documents"
         )
+        return documents
 
     def delete_one(self, collection: str, query: dict) -> None:
         """Delete one document from MongoDB.

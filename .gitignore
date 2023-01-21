@@ -132,6 +132,7 @@ dmypy.json
 _TEMPLATE/
 _HYDRA/
 _REPORT/
+_INSIGHTFACE/
 tmp/
 data/
 log/
