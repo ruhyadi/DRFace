@@ -10,7 +10,6 @@ ROOT = pyrootutils.setup_root(
 )
 
 from pathlib import Path
-from typing import List
 
 import cv2
 import numpy as np
@@ -50,14 +49,16 @@ class SSDFaceDetector(FaceDetectorBase):
 
         self.net = cv2.dnn.readNetFromCaffe(str(self.prototxt), str(self.model_weight))
 
-    def detect_face(self, img: np.ndarray, align: bool = True) -> list[FaceDetectionSchema]:
+    def detect_face(
+        self, img: np.ndarray, align: bool = True
+    ) -> list[FaceDetectionSchema]:
         """
         Detect face from image.
 
         Args:
             img (np.ndarray): Image to detect face.
             align (bool, optional): Align face. Defaults to True.
-        
+
         Returns:
             list[FaceDetectionSchema]: List of detected face.
         """
@@ -97,6 +98,7 @@ class SSDFaceDetector(FaceDetectorBase):
 
         return results
 
+
 if __name__ == "__main__":
     """Debugging."""
 
@@ -109,4 +111,3 @@ if __name__ == "__main__":
     for face in faces:
         cv2.imwrite(f"{ROOT}/tmp/face_{face.score}.jpg", face.face)
         log.info(f"Face detected with score {face.score}")
-        
