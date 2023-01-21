@@ -90,7 +90,7 @@ class FaceNetRecognizer:
         Returns:
             FaceRecognitionSchema: Face recognition schema.
         """
-        face_embedding = self.get_embeddings(face)
+        face_embedding = self.get_embedding(face)
 
         for gt in ground_truths:
             if self.dist_method == "cosine":
@@ -110,7 +110,7 @@ class FaceNetRecognizer:
                     dist_method=self.dist_method,
                 )
 
-    def get_embeddings(self, face: np.ndarray) -> np.ndarray:
+    def get_embedding(self, face: np.ndarray) -> np.ndarray:
         """
         Get face embeddings.
 

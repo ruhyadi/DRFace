@@ -10,6 +10,9 @@ ROOT = pyrootutils.setup_root(
 )
 
 import numpy as np
+from pydantic import BaseModel, Field
+
+from src.schema.common_schema import PyObjectId
 
 
 class FaceRecognitionSchema:
@@ -59,3 +62,25 @@ class EmbeddingGTSchema:
             "name": self.name,
             "embedding": self.embedding,
         }
+
+
+class FaceEmbeddingSchema(BaseModel):
+    """Face embedding schema."""
+
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    name: str = Field(..., description="Face name")
+    embedding: list = Field(..., description="Face embedding")
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "name": self.name,
+            "embedding": self.embedding,
+        }
+
+    def to_embedding_gt_schema(self) -> EmbeddingGTSchema:
+        """Convert to embedding ground truth schema."""
+        return EmbeddingGTSchema(
+            name=self.name,
+            embedding=self.embedding,
+        )

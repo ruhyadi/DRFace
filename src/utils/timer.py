@@ -72,6 +72,27 @@ class Timer:
             return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         return datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
 
+    def diff(self, start: str, end: str) -> float:
+        """
+        Get time difference between start and end.
+
+        Args:
+            start (str): Start time in ISO format.
+            end (str): End time in ISO format.
+
+        Returns:
+            float: Time difference in seconds.
+
+        Examples:
+            >>> timer = Timer()
+            >>> start = timer.now_iso()
+            >>> time.sleep(1)
+            >>> end = timer.now_iso()
+            >>> timer.diff(start, end)
+            1000.0
+
+        """
+        return (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() * 1000
 
 if __name__ == "__main__":
     """Debugging."""
