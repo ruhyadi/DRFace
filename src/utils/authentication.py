@@ -77,6 +77,25 @@ class Authentication:
         encoded_jwt = jwt.encode(to_encode, self.secret, algorithm=self.algorithm)
         return encoded_jwt
 
+    async def decode_access_token(self, token: str) -> CurrentUser:
+        """
+        Decode access token.
+
+        Args:
+            token (str): Access token
+
+        Returns:
+            CurrentUser: Decoded access token
+        """
+        try:
+            payload = jwt.decode(token, self.secret, algorithms=[self.algorithm])
+            username: str = payload.get("sub")
+            if username is None:
+                raise exception.Unauthorized("Could not validate credentials")
+            return CurrentUser(username=username)
+        except JWTError:
+            raise exception.Unauthorized(f"Could not validate credentials: {JWTError}")
+
     async def get_password_hash(self, password: str) -> str:
         """
         Get password hash.

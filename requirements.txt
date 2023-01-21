@@ -10,12 +10,19 @@ python-dotenv # .env file support
 
 # APIs
 fastapi # API framework
+grpcio # gRPC
 requests # HTTP requests
 uvicorn # ASGI server
 gunicorn # WSGI server
 python-multipart # multipart/form-data
+passlib # password hashing
+python-jose # JWT encoding/decoding
+pydantic[email] # data validation
 
 # Computation
 numpy # everyone knows numpy
 Pillow # image processing but brrrs
 opencv-python # image processing
+
+# Database
+pymongo # MongoDB driver

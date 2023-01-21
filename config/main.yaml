@@ -3,6 +3,7 @@
 # Default configurations
 defaults:
   - _self_
+  - api: [main_api]
   - logger: [default] 
   - database: [mongodb_database]
   - override hydra/hydra_logging: none

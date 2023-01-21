@@ -12,7 +12,12 @@ ROOT = pyrootutils.setup_root(
 import secrets
 
 from fastapi import APIRouter, Depends, FastAPI
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordRequestForm
+from fastapi.security import (
+    HTTPBasic,
+    HTTPBasicCredentials,
+    OAuth2PasswordRequestForm,
+    OAuth2PasswordBearer,
+)
 from omegaconf import DictConfig
 
 from src.database.mongodb_api import MongoDBAPI
@@ -26,6 +31,7 @@ from src.utils.timer import Timer
 # api app
 app = FastAPI()
 basic_auth = HTTPBasic()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login")
 
 exception = APIExceptions()
 log = get_logger()
@@ -54,6 +60,9 @@ class BaseAPI:
 
         # mongodb database
         self.mongodb = MongoDBAPI(self.cfg)
+
+        # setup router
+        self.setup()
 
     def setup(self) -> None:
         """Setup API."""
@@ -107,6 +116,49 @@ class BaseAPI:
 
             return user
 
+        @self.router.get(
+            "/api/user/bearer/current-user",
+            description="Get current user",
+            tags=["user"],
+            response_model=CurrentUser,
+            dependencies=[Depends(self.bearer_auth)],
+        )
+        async def get_current_user(
+            current_user: CurrentUser = Depends(self.bearer_auth),
+        ) -> CurrentUser:
+            """Get current user
+
+            Args:
+                current_user (CurrentUser, optional): Current user object. Defaults to Depends(self.bearer_auth).
+
+            Returns:
+                CurrentUser: Current user object
+            """
+            log.debug(f"Get current user: {current_user}")
+            return current_user
+
+        @self.router.get(
+            "/api/user/basic/current-user",
+            description="Get current user",
+            tags=["user"],
+            response_model=CurrentUser,
+            dependencies=[Depends(self.basic_auth)],
+        )
+        async def get_current_user(
+            current_user: CurrentUser = Depends(self.basic_auth),
+        ) -> CurrentUser:
+            """Get current user
+
+            Args:
+                current_user (CurrentUser, optional): Current user object. Defaults to Depends(self.basic_auth).
+
+            Returns:
+                CurrentUser: Current user object
+            """
+            return CurrentUser(username=self.cfg.api.auth.basic.username)
+
+        app.include_router(self.router)
+
     def basic_auth(self, credentials: HTTPBasicCredentials = Depends(basic_auth)):
         """Basic authentication
 
@@ -123,6 +175,23 @@ class BaseAPI:
             credentials.password, self.cfg.api.auth.basic.password
         )
         if not (correct_username and correct_password):
+            exception.Unauthorized(detail="Incorrect username or password")
+
+    async def bearer_auth(self, token: str = Depends(oauth2_scheme)) -> CurrentUser:
+        """Bearer authentication
+
+        Args:
+            token (str, optional): Token. Defaults to Depends(self.auth.oauth2_scheme).
+
+        Returns:
+            CurrentUser: Current user object
+
+        Raises:
+            exception.Unauthorized: 401
+        """
+        try:
+            return await self.auth.decode_access_token(token)
+        except Exception:
             exception.Unauthorized(detail="Incorrect username or password")
 
     async def authenticate_user(self, username: str, password: str) -> UserSchema:

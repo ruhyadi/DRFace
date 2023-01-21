@@ -122,7 +122,7 @@ class MongoDBBase:
             {'_id': ObjectId('5ff1e1c1b3c1b4b9b8b8b8b8'), 'name': 'Didi Ruhyadi', 'age': 23}
         """
         document = self.db[collection].find_one(query)
-        log.debug(f"Found document with id: {document['_id']}")
+        log.debug(f"Found document with id: {document['_id']}") if document else None
         return document
 
     def find_many(self, collection: str, query: dict) -> list:
@@ -142,7 +142,7 @@ class MongoDBBase:
             [{'_id': ObjectId('5ff1e1c1b3c1b4b9b8b8b8b8'), 'name': 'Didi Ruhyadi', 'age': 23}]
         """
         documents = list(self.db[collection].find(query))
-        log.debug(f"Found {len(documents)} documents")
+        log.debug(f"Found {len(documents)} documents") if documents else None
         return documents
 
     def update_one(self, collection: str, query: dict, data: dict) -> None:

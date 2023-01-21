@@ -90,12 +90,12 @@ def get_logger(name: str = None, level: int = None) -> logging:
         )
     )
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(rfh)
-    logger.addHandler(console_handler)
+    logging.basicConfig(
+        level=level,
+        handlers=[rfh, console_handler],
+    )
 
-    return logger
+    return logging
 
 
 def custom_logging_level(custom_dict: dict) -> None:

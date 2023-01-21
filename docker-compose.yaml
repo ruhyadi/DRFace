@@ -1,6 +1,22 @@
 version: "3"
 
 services:
+  drface-api:
+    container_name: drface-api
+    image: ruhyadi/drface:v0.1.0
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - $PWD:/app
+    ports:
+      - ${API_PORT}:${API_PORT}
+    expose:
+      - ${API_PORT}
+    command: python src/main.py mode=api
+    depends_on:
+      - drface-mongodb
+
   drface-mongodb:
     container_name: drface-mongodb
     image: mongo:6.0.3

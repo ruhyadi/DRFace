@@ -29,7 +29,6 @@ class UserSchema(BaseModel):
         json_encoders = {ObjectId: str}
         schema_extra = {
             "example": {
-                "id": "63b3e159ea836a6d304ca105",
                 "username": "didiruhyadi",
                 "password": "satuduatiga",
             }
@@ -51,7 +50,6 @@ if __name__ == "__main__":
     """Debugging."""
 
     user = UserSchema(
-        id="63b3e159ea836a6d304ca105",
         username="didiruhyadi",
         password="satuduatiga",
     )
