@@ -147,7 +147,6 @@ class MongoDBAPI(MongoDBBase):
 
     async def find_face(
         self,
-        current_user: CurrentUser,
         face_embd: FaceEmbeddingSchema,
         min_dist_thres: float = 0.5,
         dist_method: str = "cosine",
@@ -157,6 +156,8 @@ class MongoDBAPI(MongoDBBase):
 
         Args:
             face_embd (FaceEmbeddingSchema): face embedding
+            min_dist_thres (float, optional): minimum distance threshold. Defaults to 0.5.
+            dist_method (str, optional): distance method. Defaults to "cosine".
 
         Returns:
             FaceEmbeddingSchema: face embedding
@@ -164,7 +165,7 @@ class MongoDBAPI(MongoDBBase):
         Raises:
             exception.NotFound: face embedding does not exist
         """
-        gt_face_embds = await self.load_gt_embeddings(current_user)
+        gt_face_embds = await self.load_gt_embeddings(user_id=str(face_embd.user_id))
         if len(gt_face_embds) == 0:
             raise exception.NotFound("Face embedding database is empty")
 
@@ -181,12 +182,16 @@ class MongoDBAPI(MongoDBBase):
             raise exception.NotFound("Face not matched with any face in database")
         return FaceEmbeddingSchema(**gt_face_embds[min_dist_idx])
 
-    async def load_gt_embeddings(self, current_user: CurrentUser) -> list:
+    async def load_gt_embeddings(self, user_id: str = None) -> list:
         """
         Load all face ground truth embeddings from MongoDB.
+
+        Args:
+            user_id (str): user id
 
         Returns:
             list: list of face embeddings
         """
-        user = await self.get_user(current_user.username)
-        return self.find_many("faces", {"user_id": user.id})
+        if user_id:
+            return self.find_many("faces", {"user_id": user_id})
+        return self.find_many("faces", {})

@@ -86,6 +86,9 @@ class FaceRecognitionAPI(BaseAPI):
                 24, f"Request from {request.client.host} to register face of {name}"
             )
 
+            # get user object
+            user = await self.mongodb.get_user(current_user.username)
+
             # preprocess image
             img = await self.preprocess_raw_img(await image.read())
 
@@ -99,7 +102,7 @@ class FaceRecognitionAPI(BaseAPI):
             # register face
             face_embd = self.face_recognition.get_embedding(face_dets[0].face)
             face_embd = FaceEmbeddingSchema(
-                user_id=(await self.mongodb.get_user(current_user.username)).id,
+                user_id=user.id,
                 name=name,
                 embedding=face_embd,
             )
@@ -143,6 +146,9 @@ class FaceRecognitionAPI(BaseAPI):
             start_request = t.now_iso(utc=True)
             log.log(24, f"Request from {request.client.host} to recognize face")
 
+            # get user object
+            user = await self.mongodb.get_user(current_user.username)
+
             # preprocess image
             img = await self.preprocess_raw_img(await image.read())
 
@@ -155,9 +161,11 @@ class FaceRecognitionAPI(BaseAPI):
 
             # recognize face
             face_embd = self.face_recognition.get_embedding(face_dets[0].face)
-            face_embd = FaceEmbeddingSchema(embedding=face_embd)
+            face_embd = FaceEmbeddingSchema(
+                user_id=user.id,
+                embedding=face_embd
+                )
             face_embd = await self.mongodb.find_face(
-                current_user=current_user,
                 face_embd=face_embd,
                 min_dist_thres=self.cfg.engine.recognizer.min_dist_thres,
                 dist_method=self.cfg.engine.recognizer.dist_method,
@@ -170,7 +178,10 @@ class FaceRecognitionAPI(BaseAPI):
             )
 
             return {
-                "name": face_embd.name,
+                "result": {
+                    "status": "success",
+                    "name": face_embd.name,
+                }
             }
 
         app.include_router(self.router)
