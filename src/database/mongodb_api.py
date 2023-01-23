@@ -11,16 +11,18 @@ ROOT = pyrootutils.setup_root(
     dotenv=True,
 )
 
+from typing import List
+
 from fastapi.encoders import jsonable_encoder
 from omegaconf import DictConfig
 
 from src.database.mongodb_base import MongoDBBase
-from src.schema.user_schema import UserSchema
 from src.schema.auth_schema import CurrentUser
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
-from src.utils.math import find_cosine_distance
+from src.schema.user_schema import UserSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
+from src.utils.math import find_cosine_distance
 
 exception = APIExceptions()
 log = get_logger("mongodb_api")
@@ -145,44 +147,7 @@ class MongoDBAPI(MongoDBBase):
         name = self.find_one("faces", {"name": name})
         return True if name is not None else False
 
-    async def find_face(
-        self,
-        face_embd: FaceEmbeddingSchema,
-        min_dist_thres: float = 0.5,
-        dist_method: str = "cosine",
-    ) -> FaceEmbeddingSchema:
-        """
-        Find name of face embedding in face embedding database with KNN.
-
-        Args:
-            face_embd (FaceEmbeddingSchema): face embedding
-            min_dist_thres (float, optional): minimum distance threshold. Defaults to 0.5.
-            dist_method (str, optional): distance method. Defaults to "cosine".
-
-        Returns:
-            FaceEmbeddingSchema: face embedding
-
-        Raises:
-            exception.NotFound: face embedding does not exist
-        """
-        gt_face_embds = await self.load_gt_embeddings(user_id=str(face_embd.user_id))
-        if len(gt_face_embds) == 0:
-            raise exception.NotFound("Face embedding database is empty")
-
-        # find nearest neighbor
-        dist = []
-        for gt_embd in gt_face_embds:
-            if dist_method == "cosine":
-                dist.append(
-                    find_cosine_distance(face_embd.embedding, gt_embd["embedding"])
-                )
-        min_dist = min(dist)
-        min_dist_idx = dist.index(min_dist)
-        if min_dist > min_dist_thres:
-            raise exception.NotFound("Face not matched with any face in database")
-        return FaceEmbeddingSchema(**gt_face_embds[min_dist_idx])
-
-    async def load_gt_embeddings(self, user_id: str = None) -> list:
+    async def get_face_gts(self, user_id: str = None) -> List[FaceEmbeddingSchema]:
         """
         Load all face ground truth embeddings from MongoDB.
 
@@ -192,6 +157,11 @@ class MongoDBAPI(MongoDBBase):
         Returns:
             list: list of face embeddings
         """
+        assert isinstance(user_id, str) or user_id is None, "user_id must be str or None"
         if user_id:
-            return self.find_many("faces", {"user_id": user_id})
-        return self.find_many("faces", {})
+            gts = self.find_many("faces", {"user_id": user_id})
+        else:
+            gts = self.find_many("faces", {})
+        if len(gts) == 0:
+            raise exception.NotFound("Face embedding database is empty")
+        return [FaceEmbeddingSchema(**gt) for gt in gts]

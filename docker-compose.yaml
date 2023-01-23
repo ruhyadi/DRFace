@@ -17,16 +17,37 @@ services:
   #   depends_on:
   #     - drface-mongodb
 
-  drface-mongodb:
-    container_name: drface-mongodb
-    image: mongo:6.0.3
-    restart: always
+  # drface-mongodb:
+  #   container_name: drface-mongodb
+  #   image: mongo:6.0.3
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - $PWD/data/mongodb:/data/db
+  #   ports:
+  #     - ${MONGO_PORT}:${MONGO_PORT}
+  #   expose:
+  #     - ${MONGO_PORT}
+  #   command: mongod --port ${MONGO_PORT}
+
+  drface-engine-facenet:
+    container_name: drface-engine-facenet
+    image: openvino/model_server:2022.3
+    user: 1000:1000
     env_file:
       - .env
     volumes:
-      - $PWD/data/mongodb:/data/db
+      - $PWD/weights/facenet:/weights/facenet
     ports:
-      - ${MONGO_PORT}:${MONGO_PORT}
+      - ${ENGINE_FACENET_GRPC_PORT}:${ENGINE_FACENET_GRPC_PORT}
+      - ${ENGINE_FACENET_REST_PORT}:${ENGINE_FACENET_REST_PORT}
     expose:
-      - ${MONGO_PORT}
-    command: mongod --port ${MONGO_PORT}
+      - ${ENGINE_FACENET_GRPC_PORT}
+      - ${ENGINE_FACENET_REST_PORT}
+    command: |
+      --model_name facenet
+      --model_path /weights/facenet
+      --port ${ENGINE_FACENET_GRPC_PORT}
+      --rest_port ${ENGINE_FACENET_REST_PORT}
+      --target_device CPU
