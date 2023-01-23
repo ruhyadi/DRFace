@@ -19,7 +19,8 @@ from PIL import Image
 
 from src.api.base_api import BaseAPI
 from src.engine.detector.ssd_detector import SSDFaceDetector
-from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
+# from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
+from src.engine.recognizer.facenet_recognizer2 import FaceNetRecognizer
 from src.schema.auth_schema import CurrentUser
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
 from src.utils.exception import APIExceptions
@@ -160,16 +161,26 @@ class FaceRecognitionAPI(BaseAPI):
                 raise exceptions.BadRequest("Multiple faces detected")
 
             # recognize face
-            face_embd = self.face_recognition.get_embedding(face_dets[0].face)
-            face_embd = FaceEmbeddingSchema(
-                user_id=user.id,
-                embedding=face_embd
-                )
-            face_embd = await self.mongodb.find_face(
-                face_embd=face_embd,
-                min_dist_thres=self.cfg.engine.recognizer.min_dist_thres,
+            ground_truths = await self.mongodb.get_face_gts(user_id=user.id)
+            preds = self.face_recognition.predict(
+                face=face_dets[0].face,
+                ground_truths=ground_truths,
                 dist_method=self.cfg.engine.recognizer.dist_method,
+                dist_threshold=self.cfg.engine.recognizer.min_dist_thres,
             )
+
+
+            # recognize face
+            # face_embd = self.face_recognition.get_embedding(face_dets[0].face)
+            # face_embd = FaceEmbeddingSchema(
+            #     user_id=user.id,
+            #     embedding=face_embd
+            #     )
+            # face_embd = await self.mongodb.find_face(
+            #     face_embd=face_embd,
+            #     min_dist_thres=self.cfg.engine.recognizer.min_dist_thres,
+            #     dist_method=self.cfg.engine.recognizer.dist_method,
+            # )
 
             end_request = t.now_iso(utc=True)
             log.log(

@@ -195,3 +195,21 @@ class MongoDBAPI(MongoDBBase):
         if user_id:
             return self.find_many("faces", {"user_id": user_id})
         return self.find_many("faces", {})
+
+    async def get_face_gts(self, user_id: str = None) -> list:
+        """
+        Load all face ground truth embeddings from MongoDB.
+
+        Args:
+            user_id (str): user id
+
+        Returns:
+            list: list of face embeddings
+        """
+        if user_id:
+            gts = self.find_many("faces", {"user_id": user_id})
+        else:
+            gts = self.find_many("faces", {})
+        if len(gts) == 0:
+            raise exception.NotFound("Face embedding database is empty")
+        return gts

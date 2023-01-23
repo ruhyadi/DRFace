@@ -9,14 +9,19 @@ ROOT = pyrootutils.setup_root(
     dotenv=True,
 )
 
-from typing import Union
-import numpy as np
+from typing import List, Union
 
+import numpy as np
 import tritonclient.grpc as grpcclient
 import tritonclient.http as httpclient
 
+from src.schema.face_recognition_schema import (EmbeddingGTSchema,
+                                                FaceRecognitionSchema)
+from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
+from src.utils.math import find_cosine_distance
 
+exception = APIExceptions()
 log = get_logger("facenet_ovms")
 
 
@@ -52,6 +57,65 @@ class FaceNetRecognizer:
 
         # get inputs and outputs from metadata
         self.inputs, self.outputs = self.get_metadata_io()
+
+    def predict(
+        self, 
+        face: np.ndarray, 
+        ground_truths: List[EmbeddingGTSchema],
+        dist_method: str = "cosine",
+        dist_threshold: float = 0.5,
+        ) -> FaceRecognitionSchema:
+        """
+        Predict name of the person in the face image.
+
+        Args:
+            face (np.ndarray): Face image.
+            ground_truths (List[EmbeddingGroundTruthSchema]): Ground truth embeddings.
+
+        Returns:
+            FaceRecognitionSchema: Face recognition schema.
+        """
+        face_embedding = self.get_embedding(face)
+
+        # find nearest neighbor
+        dist = []
+        for gt in ground_truths:
+            if dist_method == "cosine":
+                dist.append(find_cosine_distance(face_embedding, gt.embedding))
+        min_dist = min(dist)
+        min_dist_idx = dist.index(min_dist)
+        if min_dist > dist_threshold:
+            raise exception.NotFound("Face not matched with any face in database")
+        return FaceRecognitionSchema(
+            
+
+            # if dist < dist_threshold:
+            #     return FaceRecognitionSchema(
+            #         face=face,
+            #         name=gt.name,
+            #         distance=dist,
+            #         embedding=face_embedding,
+            #     )
+            # else:
+            #     return FaceRecognitionSchema(
+            #         face=face,
+            #         name=None,
+            #         distance=dist,
+            #         embedding=face_embedding,
+            #     )
+
+    def get_embedding(self, face: np.ndarray) -> np.ndarray:
+        """
+        Get face embedding.
+
+        Args:
+            face (np.ndarray): Face image.
+
+        Returns:
+            np.ndarray: Face embedding.
+        """
+        face = self.preprocess_img(face)
+        return self.inference(face)[0].tolist()
 
     def inference(
         self, image: np.ndarray
@@ -102,13 +166,30 @@ class FaceNetRecognizer:
 
         return inputs, outputs
 
+    def preprocess_img(self, face: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image.
+
+        Args:
+            face (np.ndarray): Face image.
+
+        Returns:
+            np.ndarray: Preprocessed image.
+        """
+        face = cv2.resize(face, (160, 160))
+        face = face.transpose((2, 0, 1))
+        face = np.expand_dims(face, axis=0)
+        face = face.astype(np.float32)
+        return face
+
 
 if __name__ == "__main__":
     """Debugging."""
 
-    import numpy as np
-    import cv2
     import time
+
+    import cv2
+    import numpy as np
 
     image = cv2.imread("tmp/sample001_cropped.jpg")
     image = cv2.resize(image, (160, 160))
