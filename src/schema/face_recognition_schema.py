@@ -94,7 +94,12 @@ class FaceEmbeddingSchema(BaseModel):
 
 
 class FaceRecognitionResponse(BaseModel):
-    """Face recognition API response schema."""    
+    """Face recognition API response schema."""
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    request_id: str = Field(None, description="Request ID")
+    timestamp: str = Field(None, description="Timestamp")
+    status: str = Field(None, description="Status")
+    engine: str = Field(None, description="Face recognition engine")
     name: str = Field(None, description="Face name")
     distance: float = Field(None, description="Face distance")
     dist_method: str = Field(None, description="Distance method")
@@ -102,20 +107,15 @@ class FaceRecognitionResponse(BaseModel):
     class Config:
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary."""
-        return {
-            "name": self.name,
-            "distance": self.distance,
-            "dist_method": self.dist_method,
+        json_encoders = {ObjectId: str}
+        sceham_extra = {
+            "example": {
+                "request_id": "5f9f5b9b-5b5a-4b5a-9b9b-5b9b5b9b5b9b",
+                "timestamp": "2021-01-03T00:00:01.000000Z",
+                "status": "success",
+                "engine": "facenet",
+                "name": "didi_ruhyadi",
+                "distance": 0.5,
+                "dist_method": "cosine",
+            }
         }
-
-    def to_face_recognition_schema(self) -> FaceRecognitionSchema:
-        """Convert to face recognition schema."""
-        return FaceRecognitionSchema(
-            face=None,
-            name=self.name,
-            distance=self.distance,
-            dist_method=self.dist_method,
-        )

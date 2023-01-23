@@ -10,10 +10,12 @@ ROOT = pyrootutils.setup_root(
 )
 
 import io
+import uuid
 
 import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, FastAPI, File, Request, UploadFile
+from fastapi.encoders import jsonable_encoder
 from omegaconf import DictConfig
 from PIL import Image
 
@@ -21,7 +23,12 @@ from src.api.base_api import BaseAPI
 from src.engine.detector.ssd_detector import SSDFaceDetector
 from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
 from src.schema.auth_schema import CurrentUser
-from src.schema.face_recognition_schema import FaceEmbeddingSchema
+from src.schema.log_schema import LogSchema
+from src.schema.face_detection_schema import FaceDetectionRequest, FaceDetectionResponse
+from src.schema.face_recognition_schema import (
+    FaceEmbeddingSchema,
+    FaceRecognitionResponse,
+)
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
 from src.utils.timer import Timer
@@ -61,10 +68,12 @@ class FaceRecognitionAPI(BaseAPI):
             summary="Register face",
             description="Register face",
             dependencies=[Depends(self.bearer_auth)],
+            response_model=FaceDetectionResponse,
+            response_model_exclude=["id"],
         )
         async def face_register(
             request: Request,
-            name: str,
+            request_form: FaceDetectionRequest = Depends(),
             image: UploadFile = File(...),
             current_user: CurrentUser = Depends(self.bearer_auth),
         ):
@@ -72,7 +81,7 @@ class FaceRecognitionAPI(BaseAPI):
             Register face.
 
             Args:
-                name (str): Name of the person.
+                request_form (FaceDetectionRequest): Name of the person.
                 image (UploadFile): Image file.
 
             Raise:
@@ -80,7 +89,8 @@ class FaceRecognitionAPI(BaseAPI):
                 exceptions.BadRequest: Multiple faces detected.
             """
             start_request = t.now_iso(utc=True)
-            name = name.lower().replace(" ", "_")
+            request_id = str(uuid.uuid4())
+            name = request_form.name.lower().replace(" ", "_")
             log.log(
                 24, f"Request from {request.client.host} to register face of {name}"
             )
@@ -108,17 +118,36 @@ class FaceRecognitionAPI(BaseAPI):
             face_embd = await self.mongodb.insert_face(face_embd, is_update=True)
 
             end_request = t.now_iso(utc=True)
-            log.log(
-                24,
-                f"Request to register face of {name} completed in {t.diff(start_request, end_request)}",
+            request_time = t.diff(start_request, end_request)
+
+            # API response
+            response = FaceDetectionResponse(
+                request_id=request_id,
+                timestamp=start_request,
+                status="success",
+                engine="opencv_ssd",
+                name=name,
+                confidence=face_dets[0].score,
             )
 
-            return {
-                "result": {
-                    "status": "success",
-                    "name": face_embd.name,
-                }
-            }
+            # logging to database
+            logs = LogSchema(
+                user_id=str(user.id),
+                request_id=request_id,
+                timestamp=start_request,
+                request_type="face_register",
+                request_data={"name": name},
+                response_data=jsonable_encoder(response),
+                response_time=request_time,
+            )
+            await self.mongodb.insert_log(logs)
+
+            log.log(
+                24,
+                f"Request to register face of {name} completed in {request_time} ms",
+            )
+
+            return response
 
         @self.router.post(
             "/api/face/recognize",
@@ -126,23 +155,29 @@ class FaceRecognitionAPI(BaseAPI):
             summary="Recognize face",
             description="Recognize face",
             dependencies=[Depends(self.bearer_auth)],
+            response_model=FaceRecognitionResponse,
+            response_model_exclude=["id"],
         )
         async def face_recognize(
-            request: Request, 
+            request: Request,
             image: UploadFile = File(...),
             current_user: CurrentUser = Depends(self.bearer_auth),
-            ):
+        ) -> FaceRecognitionResponse:
             """
             Recognize face.
 
             Args:
                 image (UploadFile): Image file.
 
+            Return:
+                FaceRecognitionResponse: Face recognition response.
+
             Raise:
                 exceptions.NotFound: No face detected.
                 exceptions.BadRequest: Multiple faces detected.
             """
             start_request = t.now_iso(utc=True)
+            request_id = str(uuid.uuid4())
             log.log(24, f"Request from {request.client.host} to recognize face")
 
             # get user object
@@ -168,17 +203,37 @@ class FaceRecognitionAPI(BaseAPI):
             )
 
             end_request = t.now_iso(utc=True)
+            request_time = t.diff(start_request, end_request)
+
+            # API response
+            response = FaceRecognitionResponse(
+                request_id=request_id,
+                timestamp=start_request,
+                status="success",
+                engine="facenet",
+                name=preds.name,
+                distance=round(preds.distance, 6),
+                dist_method=self.cfg.engine.recognizer.dist_method,
+            )
+
+            # logging to database
+            logs = LogSchema(
+                user_id=str(user.id),
+                request_id=request_id,
+                timestamp=start_request,
+                request_type="face_recognize",
+                request_data={"request_ip": request.client.host},
+                response_data=jsonable_encoder(response),
+                response_time=request_time,
+            )
+            await self.mongodb.insert_log(logs)
+
             log.log(
                 24,
                 f"Request to recognize face completed in {t.diff(start_request, end_request)}",
             )
 
-            return {
-                "result": {
-                    "status": "success",
-                    "name": preds.name,
-                }
-            }
+            return response
 
         app.include_router(self.router)
 

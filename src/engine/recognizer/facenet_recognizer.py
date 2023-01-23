@@ -16,8 +16,8 @@ import numpy as np
 import tritonclient.grpc as grpcclient
 import tritonclient.http as httpclient
 
-from src.schema.face_recognition_schema import (EmbeddingGTSchema,
-                                                FaceRecognitionSchema)
+from src.engine.recognizer.recognizer_base import FaceRecognizerBase
+from src.schema.face_recognition_schema import EmbeddingGTSchema, FaceRecognitionSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
 from src.utils.math import find_cosine_distance
@@ -26,7 +26,7 @@ exception = APIExceptions()
 log = get_logger("facenet_ovms")
 
 
-class FaceNetRecognizer:
+class FaceNetRecognizer(FaceRecognizerBase):
     """FaceNet OVMS client."""
 
     def __init__(
@@ -45,37 +45,41 @@ class FaceNetRecognizer:
             model_version (str, optional): Model version. Defaults to "1".
             protocol (str, optional): Protocol to use. Defaults to "grpc".
         """
-        assert protocol in ["grpc", "http"], "Protocol must be either 'grpc' or 'http'"
-        self.model_name = model_name
-        self.model_version = model_version
-        self.protocol = protocol
-        self.host = host
-        self.grpc_port = grpc_port
-        self.http_port = http_port
+        super().__init__(
+            model_name=model_name,
+            model_version=model_version,
+            protocol=protocol,
+            host=host,
+            grpc_port=grpc_port,
+            http_port=http_port,
+        )
 
         # connect to server
-        self.connect()
+        self.setup_connection()
 
         # get inputs and outputs from metadata
         self.inputs, self.outputs = self.get_metadata_io()
 
     def predict(
-        self, 
-        face: np.ndarray, 
+        self,
+        face: np.ndarray,
         ground_truths: List[EmbeddingGTSchema],
         dist_method: str = "cosine",
         dist_threshold: float = 0.5,
-        ) -> FaceRecognitionSchema:
+    ) -> FaceRecognitionSchema:
         """
         Predict name of the person in the face image.
 
         Args:
             face (np.ndarray): Face image.
-            ground_truths (List[EmbeddingGroundTruthSchema]): Ground truth embeddings.
+            ground_truths (List[EmbeddingGTSchema], optional): Ground truths. Defaults to None.
+            dist_method (str, optional): Distance method. Defaults to "cosine".
+            dist_threshold (float, optional): Distance threshold. Defaults to 0.5.
 
         Returns:
             FaceRecognitionSchema: Face recognition schema.
         """
+
         face_embedding = self.get_embedding(face)
 
         # find nearest neighbor
@@ -94,7 +98,7 @@ class FaceNetRecognizer:
             dist_method=dist_method,
         )
 
-    def get_embedding(self, face: np.ndarray) -> np.ndarray:
+    def get_embedding(self, face: np.ndarray) -> list:
         """
         Get face embedding.
 
@@ -102,7 +106,7 @@ class FaceNetRecognizer:
             face (np.ndarray): Face image.
 
         Returns:
-            np.ndarray: Face embedding.
+            list: Face embedding vector.
         """
         face = self.preprocess_img(face)
         return self.inference(face)[0].tolist()
@@ -121,7 +125,7 @@ class FaceNetRecognizer:
         )
         return response.as_numpy(self.outputs)
 
-    def connect(self) -> None:
+    def setup_connection(self) -> None:
         """Connect to OVMS server."""
         if self.protocol == "grpc":
             self.client = grpcclient.InferenceServerClient(

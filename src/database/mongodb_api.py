@@ -19,6 +19,7 @@ from omegaconf import DictConfig
 from src.database.mongodb_base import MongoDBBase
 from src.schema.auth_schema import CurrentUser
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
+from src.schema.log_schema import LogSchema
 from src.schema.user_schema import UserSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
@@ -123,9 +124,7 @@ class MongoDBAPI(MongoDBBase):
         face_embd = jsonable_encoder(face_embd)
         if is_update and is_exist:
             result = self.update_one(
-                "faces", 
-                {"name": face_embd["name"]}, 
-                {"embedding": face_embd}
+                "faces", {"name": face_embd["name"]}, {"embedding": face_embd}
             )
         else:
             result = self.insert_one("faces", face_embd)
@@ -157,7 +156,9 @@ class MongoDBAPI(MongoDBBase):
         Returns:
             list: list of face embeddings
         """
-        assert isinstance(user_id, str) or user_id is None, "user_id must be str or None"
+        assert (
+            isinstance(user_id, str) or user_id is None
+        ), "user_id must be str or None"
         if user_id:
             gts = self.find_many("faces", {"user_id": user_id})
         else:
@@ -165,3 +166,16 @@ class MongoDBAPI(MongoDBBase):
         if len(gts) == 0:
             raise exception.NotFound("Face embedding database is empty")
         return [FaceEmbeddingSchema(**gt) for gt in gts]
+
+    async def insert_log(self, logs: LogSchema) -> None:
+        """
+        Insert log to MongoDB.
+
+        Args:
+            logs (LogSchema): log information
+        """
+        logs = jsonable_encoder(logs)
+        result = self.insert_one("logs", logs)
+        if result is None:
+            raise exception.InternalServerError("Error inserting log")
+        log.log(22, f"Log {logs['request_id']} inserted successfully")
