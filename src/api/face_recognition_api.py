@@ -22,8 +22,10 @@ from PIL import Image
 from src.api.base_api import BaseAPI
 from src.engine.detector.ssd_detector import SSDFaceDetector
 from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
+from src.engine.recognizer.arcface_recognizer import ArcFaceRecognizer
 from src.schema.auth_schema import CurrentUser
 from src.schema.log_schema import LogSchema
+from src.schema.enums_schema import DetectionModel, RecognitionModel
 from src.schema.face_detection_schema import FaceDetectionRequest, FaceDetectionResponse
 from src.schema.face_recognition_schema import (
     FaceEmbeddingSchema,
@@ -54,10 +56,11 @@ class FaceRecognitionAPI(BaseAPI):
 
     def setup_model(self) -> None:
         """Setup face detection and face recogntiion model."""
-        self.face_detection = SSDFaceDetector()
-        self.face_detection.build_model()
+        self.ssd = SSDFaceDetector()
+        self.ssd.build_model()
 
-        self.face_recognition = FaceNetRecognizer()
+        self.facanet = FaceNetRecognizer()
+        self.arcface = ArcFaceRecognizer()
 
     def setup(self) -> None:
         """Setup API Endpoints."""
@@ -91,6 +94,9 @@ class FaceRecognitionAPI(BaseAPI):
             start_request = t.now_iso(utc=True)
             request_id = str(uuid.uuid4())
             name = request_form.name.lower().replace(" ", "_")
+            detection_model = request_form.detection_model
+            recognition_model = request_form.recognition_model
+
             log.log(
                 24, f"Request from {request.client.host} to register face of {name}"
             )
@@ -102,17 +108,23 @@ class FaceRecognitionAPI(BaseAPI):
             img = await self.preprocess_raw_img(await image.read())
 
             # detect face
-            face_dets = self.face_detection.detect_face(img)
+            if detection_model == DetectionModel.ssd:
+                face_dets = self.ssd.detect_face(img)
             if not face_dets:
                 raise exceptions.NotFound("No face detected")
             if len(face_dets) > 1:
                 raise exceptions.BadRequest("Multiple faces detected")
 
             # register face
-            face_embd = self.face_recognition.get_embedding(face_dets[0].face)
+            if recognition_model == RecognitionModel.facenet:
+                face_embd = self.facanet.get_embedding(face_dets[0].face)
+            elif recognition_model == RecognitionModel.arcface:
+                face_embd = self.arcface.get_embedding(face_dets[0].face)
             face_embd = FaceEmbeddingSchema(
-                user_id=user.id,
+                user_id=str(user.id),
                 name=name,
+                detection_model=detection_model,
+                recognition_model=recognition_model,
                 embedding=face_embd,
             )
             face_embd = await self.mongodb.insert_face(face_embd, is_update=True)
@@ -125,9 +137,9 @@ class FaceRecognitionAPI(BaseAPI):
                 request_id=request_id,
                 timestamp=start_request,
                 status="success",
-                engine="opencv_ssd",
+                detection_model=detection_model,
+                recognition_model=recognition_model,
                 name=name,
-                confidence=face_dets[0].score,
             )
 
             # logging to database
@@ -136,7 +148,7 @@ class FaceRecognitionAPI(BaseAPI):
                 request_id=request_id,
                 timestamp=start_request,
                 request_type="face_register",
-                request_data={"name": name},
+                request_data=jsonable_encoder(request_form),
                 response_data=jsonable_encoder(response),
                 response_time=request_time,
             )

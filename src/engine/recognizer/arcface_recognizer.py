@@ -22,7 +22,7 @@ class ArcFaceRecognizer(FaceRecognizerBase):
         model_name: str = "arcface",
         model_version: str = "1",
         protocol: str = "grpc",
-        host: str = "drface-engine-insightface",
+        host: str = "drface-engine-arcface",
         grpc_port: int = 4553,
         http_port: int = 4554,
     ) -> None:

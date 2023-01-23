@@ -16,7 +16,7 @@ from bson import ObjectId
 from fastapi import Form
 from pydantic import BaseModel, Field
 
-from src.schema.common_schema import PyObjectId
+from src.schema.enums_schema import DetectionModel, RecognitionModel
 
 
 class FaceDetectionSchema:
@@ -49,23 +49,29 @@ class FaceDetectionSchema:
         x1, y1, x2, y2 = self.coordinate
         return [x1, y1, x2 - x1, y2 - y1]
 
+
 @dataclass
 class FaceDetectionRequest:
     """Face detection API request schema."""
 
     name: str = Form(..., description="Name of the person")
+    detection_model: DetectionModel = Form(..., description="Detection model")
+    recognition_model: RecognitionModel = Form(..., description="Recognition model")
 
 
 class FaceDetectionResponse(BaseModel):
     """Face detection API response schema."""
 
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     request_id: str = Field(None, description="Request ID")
     timestamp: str = Field(None, description="Timestamp")
     status: str = Field(None, description="Status")
-    engine: str = Field(None, description="Face recognition engine")
+    detection_model: DetectionModel = Field(
+        DetectionModel.ssd, description="Face detection model"
+    )
+    recognition_model: RecognitionModel = Field(
+        RecognitionModel.arcface, description="Face recognition model"
+    )
     name: str = Field(None, description="Face name")
-    confidence: float = Field(None, description="Face confidence")
 
     class Config:
         allow_population_by_field_name = True
@@ -76,8 +82,8 @@ class FaceDetectionResponse(BaseModel):
                 "request_id": "5f9f5b5b-5f9f5b5b-5f9f5b5b-5f9f5b5b",
                 "timestamp": "2021-01-03T00:00:01.000000Z",
                 "status": "success",
-                "engine": "opencv_ssd",
+                "detection_model": "ssd",
+                "recognition_model": "arcface",
                 "name": "didi_ruhyadi",
-                "confidence": 0.9,
             }
         }

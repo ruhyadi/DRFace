@@ -14,12 +14,15 @@ from bson import ObjectId
 from pydantic import BaseModel, Field
 
 from src.schema.common_schema import PyObjectId
+from src.schema.enums_schema import DetectionModel, RecognitionModel
 
 
 class FaceRecognitionSchema:
     """Face recognition schema."""
 
-    def __init__(self, face: np.ndarray, name: str, distance: float, dist_method: str) -> None:
+    def __init__(
+        self, face: np.ndarray, name: str, distance: float, dist_method: str
+    ) -> None:
         """
         Initialize face recognition schema.
 
@@ -71,6 +74,12 @@ class FaceEmbeddingSchema(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     user_id: PyObjectId = Field(None, description="User ID")
     name: str = Field(None, description="Face name")
+    detection_model: DetectionModel = Field(
+        DetectionModel.ssd, description="Detection model"
+    )
+    recognition_model: RecognitionModel = Field(
+        RecognitionModel.arcface, description="Recognition model"
+    )
     embedding: list = Field(..., description="Face embedding")
 
     class Config:
@@ -78,23 +87,10 @@ class FaceEmbeddingSchema(BaseModel):
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary."""
-        return {
-            "name": self.name,
-            "embedding": self.embedding,
-        }
-
-    def to_embedding_gt_schema(self) -> EmbeddingGTSchema:
-        """Convert to embedding ground truth schema."""
-        return EmbeddingGTSchema(
-            name=self.name,
-            embedding=self.embedding,
-        )
-
 
 class FaceRecognitionResponse(BaseModel):
     """Face recognition API response schema."""
+
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     request_id: str = Field(None, description="Request ID")
     timestamp: str = Field(None, description="Timestamp")
