@@ -1,4 +1,4 @@
-"""Client for FaceNet recognizer."""
+"""Insight face recognizer model."""
 
 import pyrootutils
 
@@ -9,7 +9,7 @@ ROOT = pyrootutils.setup_root(
     dotenv=True,
 )
 
-from typing import List, Union
+from typing import Union, List
 
 import cv2
 import numpy as np
@@ -23,20 +23,20 @@ from src.utils.logger import get_logger
 from src.utils.math import find_cosine_distance
 
 exception = APIExceptions()
-log = get_logger("facenet_ovms")
+log = get_logger("insightface_ovms")
 
 
-class FaceNetRecognizer(FaceRecognizerBase):
-    """FaceNet OVMS client."""
+class InsightFaceRecognizer(FaceRecognizerBase):
+    """InsightFace OVMS client."""
 
     def __init__(
         self,
-        model_name: str = "facenet",
+        model_name: str = "insightface",
         model_version: str = "1",
         protocol: str = "grpc",
-        host: str = "drface-engine-facenet",
-        grpc_port: int = 4551,
-        http_port: int = 4552,
+        host: str = "drface-engine-insightface",
+        grpc_port: int = 4553,
+        http_port: int = 4554,
     ) -> None:
         """
         Initialize.
@@ -57,8 +57,8 @@ class FaceNetRecognizer(FaceRecognizerBase):
         # connect to server
         self.setup_connection()
 
-        # get inputs and outputs from metadata
-        self.inputs, self.outputs = self.get_metadata_io()
+        # metadata input and output
+        self.inputs, self.outputs = self.get_matadata_io()
 
     def predict(
         self,
@@ -98,6 +98,28 @@ class FaceNetRecognizer(FaceRecognizerBase):
             dist_method=dist_method,
         )
 
+    def inference(
+        self, face: np.ndarray
+    ) -> Union[grpcclient.InferResult, httpclient.InferResult]:
+        """
+        Inference model with ovms client.
+
+        Args:
+            face (np.ndarray): Face image.
+
+        Returns:
+            Union[grpcclient.InferResult, httpclient.InferResult]: Inference result.
+        """
+        inputs = []
+        inputs.append(self.infer_input(self.inputs, face.shape, "FP32"))
+        inputs[0].set_data_from_numpy(face)
+        outputs = []
+        outputs.append(self.infer_output(self.outputs[0]))
+        response = self.client.infer(
+            self.model_name, inputs, request_id="1", outputs=outputs
+        )
+        return response.as_numpy(self.outputs)
+
     def get_embedding(self, face: np.ndarray) -> list:
         """
         Get face embedding.
@@ -110,21 +132,7 @@ class FaceNetRecognizer(FaceRecognizerBase):
         """
         face = self.preprocess_img(face)
         return self.inference(face)[0].tolist()
-
-    def inference(
-        self, image: np.ndarray
-    ) -> Union[grpcclient.InferResult, httpclient.InferResult]:
-        """Inference."""
-        inputs = []
-        inputs.append(self.infer_input(self.inputs, image.shape, "FP32"))
-        inputs[0].set_data_from_numpy(image)
-        outputs = []
-        outputs.append(self.infer_output(self.outputs))
-        response = self.client.infer(
-            model_name=self.model_name, inputs=inputs, outputs=outputs
-        )
-        return response.as_numpy(self.outputs)
-
+    
     def setup_connection(self) -> None:
         """Connect to OVMS server."""
         if self.protocol == "grpc":
@@ -134,7 +142,7 @@ class FaceNetRecognizer(FaceRecognizerBase):
             self.infer_input = grpcclient.InferInput
             self.infer_output = grpcclient.InferRequestedOutput
             log.log(
-                24, f"FaceNet connected to gRPC server at {self.host}:{self.grpc_port}"
+                24, f"InsigtFace gRPC client connected to {self.host}:{self.grpc_port}"
             )
         elif self.protocol == "http":
             self.client = httpclient.InferenceServerClient(
@@ -143,11 +151,13 @@ class FaceNetRecognizer(FaceRecognizerBase):
             self.infer_input = httpclient.InferInput
             self.infer_output = httpclient.InferRequestedOutput
             log.log(
-                24, f"FaceNet connected to HTTP server at {self.host}:{self.http_port}"
+                24, f"InsigtFace HTTP client connected to {self.host}:{self.http_port}"
             )
+        else:
+            raise exception.NotImplemented(f"Protocol {self.protocol} not implemented")
 
-    def get_metadata_io(self) -> tuple:
-        """Get input and output metadata."""
+    def get_matadata_io(self) -> tuple:
+        """Get inputs and outputs from metadata."""
         metadata = self.client.get_model_metadata(
             model_name=self.model_name, model_version=self.model_version
         )
@@ -170,7 +180,7 @@ class FaceNetRecognizer(FaceRecognizerBase):
         Returns:
             np.ndarray: Preprocessed image.
         """
-        face = cv2.resize(face, (160, 160))
+        face = cv2.resize(face, (112, 112))
         face = face.transpose((2, 0, 1))
         face = np.expand_dims(face, axis=0)
         face = face.astype(np.float32)
@@ -179,23 +189,19 @@ class FaceNetRecognizer(FaceRecognizerBase):
 
 if __name__ == "__main__":
     """Debugging."""
-
     import time
-
     import cv2
     import numpy as np
 
-    image = cv2.imread("tmp/sample001_cropped.jpg")
-    image = cv2.resize(image, (160, 160))
-    image = image.transpose((2, 0, 1))
-    image = np.expand_dims(image, axis=0)
-    image = image.astype(np.float32)
+    face = cv2.imread("tmp/sample001_cropped.jpg")
+    face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
 
-    facenet = FaceNetRecognizer(protocol="grpc")
+    net = InsightFaceRecognizer(host="localhost")
 
     start = time.time()
-    response = facenet.inference(image)
+    response = net.get_embedding(face)
     end = time.time()
 
-    print(f"Response time: {(end - start) * 1000:.2f} ms")
-    print(response)
+    log.info(f"Response: {response}")
+    log.info(f"Response time: {(end - start) * 1000:.2f} ms")
+    log.info(f"Response shape: {len(response)}")
