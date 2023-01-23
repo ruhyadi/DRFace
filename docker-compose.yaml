@@ -52,14 +52,14 @@ services:
       --rest_port ${ENGINE_FACENET_REST_PORT}
       --target_device CPU
 
-  drface-engine-insightface:
-    container_name: drface-engine-insightface
+  drface-engine-arcface:
+    container_name: drface-engine-arcface
     image: openvino/model_server:2022.3
     user: 1000:1000
     env_file:
       - .env
     volumes:
-      - $PWD/weights/insightface:/weights/insightface
+      - $PWD/weights/arcface:/weights/arcface
     ports:
       - ${ENGINE_INSIGHTFACE_GRPC_PORT}:${ENGINE_INSIGHTFACE_GRPC_PORT}
       - ${ENGINE_INSIGHTFACE_REST_PORT}:${ENGINE_INSIGHTFACE_REST_PORT}
@@ -67,8 +67,8 @@ services:
       - ${ENGINE_INSIGHTFACE_GRPC_PORT}
       - ${ENGINE_INSIGHTFACE_REST_PORT}
     command: |
-      --model_name insightface
-      --model_path /weights/insightface
+      --model_name arcface
+      --model_path /weights/arcface
       --port ${ENGINE_INSIGHTFACE_GRPC_PORT}
       --rest_port ${ENGINE_INSIGHTFACE_REST_PORT}
       --target_device CPU

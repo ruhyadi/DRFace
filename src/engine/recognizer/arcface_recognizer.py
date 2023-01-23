@@ -1,4 +1,4 @@
-"""Client for FaceNet recognizer."""
+"""Insight face recognizer model."""
 
 import pyrootutils
 
@@ -12,32 +12,30 @@ ROOT = pyrootutils.setup_root(
 from src.engine.recognizer.recognizer_base import FaceRecognizerBase
 from src.utils.logger import get_logger
 
-log = get_logger("facenet_ovms")
+log = get_logger("arcface_recognize")
 
-
-class FaceNetRecognizer(FaceRecognizerBase):
-    """FaceNet OVMS client."""
+class ArcFaceRecognizer(FaceRecognizerBase):
+    """InsightFace OVMS client."""
 
     def __init__(
         self,
-        model_name: str = "facenet",
+        model_name: str = "arcface",
         model_version: str = "1",
         protocol: str = "grpc",
-        host: str = "drface-engine-facenet",
-        grpc_port: int = 4551,
-        http_port: int = 4552,
+        host: str = "drface-engine-insightface",
+        grpc_port: int = 4553,
+        http_port: int = 4554,
     ) -> None:
         """
-        Initialize FaceNet model.
+        Initialize ArcFace model.
 
         Args:
-            model_name (str, optional): Model name. Defaults to "facenet".
+            model_name (str, optional): Model name. Defaults to "arcface".
             model_version (str, optional): Model version. Defaults to "1".
             protocol (str, optional): Protocol. Defaults to "grpc".
-            host (str, optional): Host. Defaults to "drface-engine-facenet".
-            grpc_port (int, optional): GRPC port. Defaults to 4551.
-            http_port (int, optional): HTTP port. Defaults to 4552.
-
+            host (str, optional): Host. Defaults to "drface-engine-insightface".
+            grpc_port (int, optional): GRPC port. Defaults to 4553.
+            http_port (int, optional): HTTP port. Defaults to 4554.
         """
         super().__init__(
             model_name=model_name,
@@ -47,9 +45,8 @@ class FaceNetRecognizer(FaceRecognizerBase):
             grpc_port=grpc_port,
             http_port=http_port,
         )
-        self.input_shape = (160, 160)
-
-
+        self.input_shape = (112, 112)
+    
 if __name__ == "__main__":
     """Debugging."""
     import time
@@ -58,7 +55,7 @@ if __name__ == "__main__":
     face = cv2.imread("tmp/sample001_cropped.jpg")
     face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
 
-    net = FaceNetRecognizer(host="localhost")
+    net = ArcFaceRecognizer(host="localhost")
 
     start = time.time()
     response = net.get_embedding(face)
