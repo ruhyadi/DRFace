@@ -64,7 +64,8 @@ class FaceRecognizerBase(ABC):
             self.infer_input = grpcclient.InferInput
             self.infer_output = grpcclient.InferRequestedOutput
             log.log(
-                24, f"{self.model_name.capitalize()} gRPC client connected to {self.host}:{self.grpc_port}"
+                24,
+                f"{self.model_name.capitalize()} gRPC client connected to {self.host}:{self.grpc_port}",
             )
         elif self.protocol == "http":
             self.client = httpclient.InferenceServerClient(
@@ -73,7 +74,8 @@ class FaceRecognizerBase(ABC):
             self.infer_input = httpclient.InferInput
             self.infer_output = httpclient.InferRequestedOutput
             log.log(
-                24, f"{self.model_name.capitalize()} HTTP client connected to {self.host}:{self.http_port}"
+                24,
+                f"{self.model_name.capitalize()} HTTP client connected to {self.host}:{self.http_port}",
             )
         else:
             raise exception.NotImplemented(f"Protocol {self.protocol} not implemented")
@@ -134,7 +136,10 @@ class FaceRecognizerBase(ABC):
         outputs = []
         outputs.append(self.infer_output(self.outputs[0]))
         response = self.client.infer(
-            self.model_name, inputs, request_id="1", outputs=outputs
+            self.model_name,
+            inputs=inputs,
+            model_version=self.model_version,
+            outputs=outputs,
         )
         return response.as_numpy(self.outputs)
 
