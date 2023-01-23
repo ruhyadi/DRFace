@@ -21,16 +21,17 @@ from PIL import Image
 
 from src.api.base_api import BaseAPI
 from src.engine.detector.ssd_detector import SSDFaceDetector
-from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
 from src.engine.recognizer.arcface_recognizer import ArcFaceRecognizer
+from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
 from src.schema.auth_schema import CurrentUser
-from src.schema.log_schema import LogSchema
 from src.schema.enums_schema import DetectionModel, RecognitionModel
 from src.schema.face_detection_schema import FaceDetectionRequest, FaceDetectionResponse
 from src.schema.face_recognition_schema import (
     FaceEmbeddingSchema,
+    FaceRecognitionRequest,
     FaceRecognitionResponse,
 )
+from src.schema.log_schema import LogSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
 from src.utils.timer import Timer
@@ -172,6 +173,7 @@ class FaceRecognitionAPI(BaseAPI):
         )
         async def face_recognize(
             request: Request,
+            request_form: FaceRecognitionRequest = Depends(),
             image: UploadFile = File(...),
             current_user: CurrentUser = Depends(self.bearer_auth),
         ) -> FaceRecognitionResponse:
@@ -190,6 +192,8 @@ class FaceRecognitionAPI(BaseAPI):
             """
             start_request = t.now_iso(utc=True)
             request_id = str(uuid.uuid4())
+            detection_model = request_form.detection_model
+            recognition_model = request_form.recognition_model
             log.log(24, f"Request from {request.client.host} to recognize face")
 
             # get user object
@@ -199,20 +203,31 @@ class FaceRecognitionAPI(BaseAPI):
             img = await self.preprocess_raw_img(await image.read())
 
             # detect face
-            face_dets = self.face_detection.detect_face(img)
+            if detection_model == DetectionModel.ssd:
+                face_dets = self.ssd.detect_face(img)
             if not face_dets:
                 raise exceptions.NotFound("No face detected")
             if len(face_dets) > 1:
                 raise exceptions.BadRequest("Multiple faces detected")
 
             # recognize face
-            ground_truths = await self.mongodb.get_face_gts(user_id=str(user.id))
-            preds = self.face_recognition.predict(
-                face=face_dets[0].face,
-                ground_truths=ground_truths,
-                dist_method=self.cfg.engine.recognizer.dist_method,
-                dist_threshold=self.cfg.engine.recognizer.min_dist_thres,
+            ground_truths = await self.mongodb.get_face_gts(
+                user_id=str(user.id), recognition_model=recognition_model
             )
+            if recognition_model == RecognitionModel.facenet:
+                preds = self.facanet.predict(
+                    face=face_dets[0].face,
+                    ground_truths=ground_truths,
+                    dist_method=self.cfg.engine.recognizer.dist_method,
+                    dist_threshold=self.cfg.engine.recognizer.min_dist_thres,
+                )
+            elif recognition_model == RecognitionModel.arcface:
+                preds = self.arcface.predict(
+                    face=face_dets[0].face,
+                    ground_truths=ground_truths,
+                    dist_method=self.cfg.engine.recognizer.dist_method,
+                    dist_threshold=self.cfg.engine.recognizer.min_dist_thres,
+                )
 
             end_request = t.now_iso(utc=True)
             request_time = t.diff(start_request, end_request)
@@ -222,7 +237,8 @@ class FaceRecognitionAPI(BaseAPI):
                 request_id=request_id,
                 timestamp=start_request,
                 status="success",
-                engine="facenet",
+                detection_model=detection_model,
+                recognition_model=recognition_model,
                 name=preds.name,
                 distance=round(preds.distance, 6),
                 dist_method=self.cfg.engine.recognizer.dist_method,
@@ -234,7 +250,7 @@ class FaceRecognitionAPI(BaseAPI):
                 request_id=request_id,
                 timestamp=start_request,
                 request_type="face_recognize",
-                request_data={"request_ip": request.client.host},
+                request_data=jsonable_encoder(request_form),
                 response_data=jsonable_encoder(response),
                 response_time=request_time,
             )

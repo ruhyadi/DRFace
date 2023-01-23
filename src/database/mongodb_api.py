@@ -17,13 +17,11 @@ from fastapi.encoders import jsonable_encoder
 from omegaconf import DictConfig
 
 from src.database.mongodb_base import MongoDBBase
-from src.schema.auth_schema import CurrentUser
 from src.schema.face_recognition_schema import FaceEmbeddingSchema
 from src.schema.log_schema import LogSchema
 from src.schema.user_schema import UserSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
-from src.utils.math import find_cosine_distance
 
 exception = APIExceptions()
 log = get_logger("mongodb_api")
@@ -146,21 +144,27 @@ class MongoDBAPI(MongoDBBase):
         name = self.find_one("faces", {"name": name})
         return True if name is not None else False
 
-    async def get_face_gts(self, user_id: str = None) -> List[FaceEmbeddingSchema]:
+    async def get_face_gts(
+        self, user_id: str = None, recognition_model: str = None
+    ) -> List[FaceEmbeddingSchema]:
         """
         Load all face ground truth embeddings from MongoDB.
 
         Args:
             user_id (str): user id
+            recognition_model (str): recognition model
 
         Returns:
-            list: list of face embeddings
+            List[FaceEmbeddingSchema]: list of face ground truth embeddings
         """
         assert (
             isinstance(user_id, str) or user_id is None
         ), "user_id must be str or None"
+
         if user_id:
-            gts = self.find_many("faces", {"user_id": user_id})
+            gts = self.find_many(
+                "faces", {"user_id": user_id, "recognition_model": recognition_model}
+            )
         else:
             gts = self.find_many("faces", {})
         if len(gts) == 0:

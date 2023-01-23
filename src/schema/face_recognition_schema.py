@@ -9,8 +9,11 @@ ROOT = pyrootutils.setup_root(
     dotenv=True,
 )
 
+from dataclasses import dataclass
+
 import numpy as np
 from bson import ObjectId
+from fastapi import Form
 from pydantic import BaseModel, Field
 
 from src.schema.common_schema import PyObjectId
@@ -74,18 +77,22 @@ class FaceEmbeddingSchema(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     user_id: PyObjectId = Field(None, description="User ID")
     name: str = Field(None, description="Face name")
-    detection_model: DetectionModel = Field(
-        DetectionModel.ssd, description="Detection model"
-    )
-    recognition_model: RecognitionModel = Field(
-        RecognitionModel.arcface, description="Recognition model"
-    )
+    detection_model: DetectionModel = Field(None, description="Detection model")
+    recognition_model: RecognitionModel = Field(None, description="Recognition model")
     embedding: list = Field(..., description="Face embedding")
 
     class Config:
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+
+
+@dataclass
+class FaceRecognitionRequest:
+    """Face recognition API request schema."""
+
+    detection_model: DetectionModel = Form(..., description="Detection model")
+    recognition_model: RecognitionModel = Form(..., description="Recognition model")
 
 
 class FaceRecognitionResponse(BaseModel):
@@ -95,7 +102,8 @@ class FaceRecognitionResponse(BaseModel):
     request_id: str = Field(None, description="Request ID")
     timestamp: str = Field(None, description="Timestamp")
     status: str = Field(None, description="Status")
-    engine: str = Field(None, description="Face recognition engine")
+    detection_model: DetectionModel = Field(..., description="Detection model")
+    recognition_model: RecognitionModel = Field(..., description="Recognition model")
     name: str = Field(None, description="Face name")
     distance: float = Field(None, description="Face distance")
     dist_method: str = Field(None, description="Distance method")
@@ -109,7 +117,8 @@ class FaceRecognitionResponse(BaseModel):
                 "request_id": "5f9f5b9b-5b5a-4b5a-9b9b-5b9b5b9b5b9b",
                 "timestamp": "2021-01-03T00:00:01.000000Z",
                 "status": "success",
-                "engine": "facenet",
+                "detection_model": "ssd",
+                "recognition_model": "facenet",
                 "name": "didi_ruhyadi",
                 "distance": 0.5,
                 "dist_method": "cosine",
