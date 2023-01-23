@@ -19,12 +19,13 @@ log = get_logger("main")
 
 def main_api(cfg: DictConfig) -> None:
     """Main API module."""
-    import uvicorn
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
     from src.api.base_api import BaseAPI
     from src.api.face_recognition_api import FaceRecognitionAPI
+    from src.api.gunicorn_runner import GunicornApp
+
     # from src.api.gunicorn_runner import GunicornApp
 
     log.info("Starting DRFace API service...")
@@ -52,15 +53,13 @@ def main_api(cfg: DictConfig) -> None:
     app.include_router(face_recognition_api.router)
 
     # ISSUE: https://github.com/SeldonIO/seldon-core/issues/2220
-    # options = {
-    #     "bind": f"{cfg.api.host}:{cfg.api.port}",
-    #     "workers": cfg.api.workers,
-    #     "worker_class": "uvicorn.workers.UvicornWorker",
-    #     "timeout": cfg.api.timeout,
-    # }
-    # GunicornApp(app, options).run()
-
-    uvicorn.run(app, host=cfg.api.host, port=cfg.api.port)
+    options = {
+        "bind": f"{cfg.api.host}:{cfg.api.port}",
+        "workers": cfg.api.workers,
+        "worker_class": "uvicorn.workers.UvicornWorker",
+        "timeout": cfg.api.timeout,
+    }
+    GunicornApp(app, options).run()
 
 
 if __name__ == "__main__":

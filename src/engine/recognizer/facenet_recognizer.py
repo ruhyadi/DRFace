@@ -34,7 +34,7 @@ class FaceNetRecognizer:
         model_name: str = "facenet",
         model_version: str = "1",
         protocol: str = "grpc",
-        host: str = "localhost",
+        host: str = "drface-engine-facenet",
         grpc_port: int = 4551,
         http_port: int = 4552,
     ) -> None:

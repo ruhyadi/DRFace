@@ -2,7 +2,7 @@ FROM python:3.9.16-slim
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget git iputils-ping \
+    wget git libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies

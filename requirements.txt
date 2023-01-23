@@ -24,5 +24,8 @@ numpy # everyone knows numpy
 Pillow # image processing but brrrs
 opencv-python # image processing
 
+# DL Frameworks
+tritonclient[all] # Triton Inference Server client
+
 # Database
 pymongo # MongoDB driver
