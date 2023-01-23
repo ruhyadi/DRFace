@@ -5,7 +5,7 @@ defaults:
   - _self_
   - api: [main_api]
   - database: [mongodb_database]
-  - engine: [recognizer]
+  - engine: [arcface, facenet, recognizer, ssd]
   - logger: [default] 
   - override hydra/hydra_logging: none
   - override hydra/job_logging: none

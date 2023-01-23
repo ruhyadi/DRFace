@@ -38,7 +38,7 @@ services:
     env_file:
       - .env
     volumes:
-      - $PWD/weights/facenet:/weights/facenet
+      - $PWD${ENGINE_FACENET_MODEL_PATH}:${ENGINE_FACENET_MODEL_PATH}
     ports:
       - ${ENGINE_FACENET_GRPC_PORT}:${ENGINE_FACENET_GRPC_PORT}
       - ${ENGINE_FACENET_REST_PORT}:${ENGINE_FACENET_REST_PORT}
@@ -46,8 +46,8 @@ services:
       - ${ENGINE_FACENET_GRPC_PORT}
       - ${ENGINE_FACENET_REST_PORT}
     command: |
-      --model_name facenet
-      --model_path /weights/facenet
+      --model_name ${ENGINE_FACENET_MODEL_NAME}
+      --model_path ${ENGINE_FACENET_MODEL_PATH}
       --port ${ENGINE_FACENET_GRPC_PORT}
       --rest_port ${ENGINE_FACENET_REST_PORT}
       --target_device CPU
@@ -59,16 +59,16 @@ services:
     env_file:
       - .env
     volumes:
-      - $PWD/weights/arcface:/weights/arcface
+      - $PWD${ENGINE_ARCFACE_MODEL_PATH}:${ENGINE_ARCFACE_MODEL_PATH}
     ports:
-      - ${ENGINE_INSIGHTFACE_GRPC_PORT}:${ENGINE_INSIGHTFACE_GRPC_PORT}
-      - ${ENGINE_INSIGHTFACE_REST_PORT}:${ENGINE_INSIGHTFACE_REST_PORT}
+      - ${ENGINE_ARCFACE_GRPC_PORT}:${ENGINE_ARCFACE_GRPC_PORT}
+      - ${ENGINE_ARCFACE_REST_PORT}:${ENGINE_ARCFACE_REST_PORT}
     expose:
-      - ${ENGINE_INSIGHTFACE_GRPC_PORT}
-      - ${ENGINE_INSIGHTFACE_REST_PORT}
+      - ${ENGINE_ARCFACE_GRPC_PORT}
+      - ${ENGINE_ARCFACE_REST_PORT}
     command: |
-      --model_name arcface
-      --model_path /weights/arcface
-      --port ${ENGINE_INSIGHTFACE_GRPC_PORT}
-      --rest_port ${ENGINE_INSIGHTFACE_REST_PORT}
+      --model_name ${ENGINE_ARCFACE_MODEL_NAME}
+      --model_path ${ENGINE_ARCFACE_MODEL_PATH}
+      --port ${ENGINE_ARCFACE_GRPC_PORT}
+      --rest_port ${ENGINE_ARCFACE_REST_PORT}
       --target_device CPU

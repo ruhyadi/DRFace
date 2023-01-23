@@ -1,0 +1,9 @@
+# FaceNet model
+
+facenet:
+  model_name: ${oc.env:ENGINE_FACENET_MODEL_NAME}
+  model_version: "1"
+  protocol: "grpc"
+  host: "drface-engine-facenet"
+  grpc_port: ${oc.env:ENGINE_FACENET_GRPC_PORT}
+  http_port: ${oc.env:ENGINE_FACENET_REST_PORT}

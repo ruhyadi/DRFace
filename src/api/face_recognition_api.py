@@ -60,8 +60,22 @@ class FaceRecognitionAPI(BaseAPI):
         self.ssd = SSDFaceDetector()
         self.ssd.build_model()
 
-        self.facanet = FaceNetRecognizer()
-        self.arcface = ArcFaceRecognizer()
+        self.facanet = FaceNetRecognizer(
+            model_name=self.cfg.engine.facenet.model_name,
+            model_version=self.cfg.engine.facenet.model_version,
+            protocol=self.cfg.engine.facenet.protocol,
+            host=self.cfg.engine.facenet.host,
+            grpc_port=self.cfg.engine.facenet.grpc_port,
+            http_port=self.cfg.engine.facenet.http_port,
+        )
+        self.arcface = ArcFaceRecognizer(
+            model_name=self.cfg.engine.arcface.model_name,
+            model_version=self.cfg.engine.arcface.model_version,
+            protocol=self.cfg.engine.arcface.protocol,
+            host=self.cfg.engine.arcface.host,
+            grpc_port=self.cfg.engine.arcface.grpc_port,
+            http_port=self.cfg.engine.arcface.http_port,
+        )
 
     def setup(self) -> None:
         """Setup API Endpoints."""

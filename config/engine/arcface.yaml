@@ -1,0 +1,9 @@
+# ArcFace model
+
+arcface:
+  model_name: ${oc.env:ENGINE_ARCFACE_MODEL_NAME}
+  model_version: "1"
+  protocol: "grpc"
+  host: "drface-engine-arcface"
+  grpc_port: ${oc.env:ENGINE_ARCFACE_GRPC_PORT}
+  http_port: ${oc.env:ENGINE_ARCFACE_REST_PORT}

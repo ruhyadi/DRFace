@@ -1,0 +1,5 @@
+# SSD face detection configs
+
+ssd:
+  model_dir: "/weights/ssd_detector" # model directory
+  min_conf: 0.5 # minimum confidence for face detection
