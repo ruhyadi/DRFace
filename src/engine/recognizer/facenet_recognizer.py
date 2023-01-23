@@ -61,9 +61,8 @@ if __name__ == "__main__":
     net = FaceNetRecognizer(host="localhost")
 
     start = time.time()
-    response = net.get_embedding(face)
+    for _ in range(100):
+        response = net.get_embedding(face)
     end = time.time()
 
-    log.info(f"Response: {response}")
-    log.info(f"Response time: {(end - start) * 1000:.2f} ms")
-    log.info(f"Response shape: {len(response)}")
+    log.info(f"Response time: {(end - start)/100 * 1000:.2f} ms")
