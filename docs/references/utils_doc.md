@@ -8,7 +8,7 @@ This section will give you a brief overview of the utilities used in the DRFace 
 
 :::src.utils.logger
 
-:::src.utils.math
+:::src.utils.maths
 
 :::src.utils.timer
 
