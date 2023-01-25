@@ -203,9 +203,9 @@ class FaceRecognizerBase(ABC):
             if res.name == "unknown":
                 results[i].name = faces_embd[i].name
 
-        log.info(f"Groud truths: {[gt.name for gt in faces_embd]}")
-        log.info(f"Predictions: {[res.name for res in results]}")
-        log.info(f"Distance: {[res.distance for res in results]}")
+        log.debug(f"Groud truths: {[gt.name for gt in faces_embd]}")
+        log.debug(f"Predictions: {[res.name for res in results]}")
+        log.debug(f"Distance: {[res.distance for res in results]}")
 
         accuracy = accuracy_score(
             y_true=[gt.name for gt in faces_embd],
