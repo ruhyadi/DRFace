@@ -224,3 +224,4 @@ fabric.properties
 # Ignore folders
 data/*
 weights/*
+tmp/*

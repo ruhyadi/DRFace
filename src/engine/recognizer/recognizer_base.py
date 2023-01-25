@@ -9,9 +9,8 @@ ROOT = pyrootutils.setup_root(
     dotenv=True,
 )
 
-from typing import Union, List
-from abc import ABC, abstractmethod
-from typing import List
+from abc import ABC
+from typing import List, Union
 
 import cv2
 import numpy as np
@@ -20,8 +19,8 @@ import tritonclient.http as httpclient
 
 from src.schema.face_recognition_schema import EmbeddingGTSchema, FaceRecognitionSchema
 from src.utils.exception import APIExceptions
-from src.utils.math import find_cosine_distance
 from src.utils.logger import get_logger
+from src.utils.maths import find_cosine_distance
 
 exception = APIExceptions()
 log = get_logger("recognizer_base")
@@ -181,6 +180,7 @@ class FaceRecognizerBase(ABC):
             np.ndarray: Preprocessed image.
         """
         face = cv2.resize(face, self.input_shape)
+        face = face / 255.0
         face = face.transpose((2, 0, 1))
         face = np.expand_dims(face, axis=0)
         face = face.astype(np.float32)

@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from PIL import Image
 
-from src.utils.math import find_euclidean_distance
+from src.utils.maths import find_euclidean_distance
 
 
 class FaceDetectorBase(ABC):

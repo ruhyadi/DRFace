@@ -23,6 +23,7 @@ pydantic[email] # data validation
 numpy # everyone knows numpy
 Pillow # image processing but brrrs
 opencv-python # image processing
+scikit-learn # ML algorithms
 
 # DL Frameworks
 tritonclient[all] # Triton Inference Server client
