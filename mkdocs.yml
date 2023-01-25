@@ -1,7 +1,7 @@
 
 # Project information
 site_name: DRFace
-site_url: https://ruhyadi.github.io
+site_url: https://ruhyadi.github.io/drface
 site_author: Didi Ruhyadi
 site_description: >-
   DRFace is simple face recognition framework build on top of FastAPI, MongoDB and OpenVINO Model Server.
