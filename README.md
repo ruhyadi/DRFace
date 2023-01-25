@@ -15,6 +15,8 @@ Create a `.env` file:
 cp .env.example .env
 ```
 
+Download the weights from release page and put it in `weights` directory.
+
 Run docker container with docker-compose:
 ```bash
 docker-compose up -d

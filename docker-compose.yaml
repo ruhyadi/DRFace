@@ -14,61 +14,61 @@ services:
     expose:
       - ${API_PORT}
     command: python src/main.py mode=api
-  #   depends_on:
-  #     - drface-mongodb
+    depends_on:
+      - drface-mongodb
 
-  # drface-mongodb:
-  #   container_name: drface-mongodb
-  #   image: mongo:6.0.3
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - $PWD/data/mongodb:/data/db
-  #   ports:
-  #     - ${MONGO_PORT}:${MONGO_PORT}
-  #   expose:
-  #     - ${MONGO_PORT}
-  #   command: mongod --port ${MONGO_PORT}
+  drface-mongodb:
+    container_name: drface-mongodb
+    image: mongo:6.0.3
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - $PWD/data/mongodb:/data/db
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    expose:
+      - ${MONGO_PORT}
+    command: mongod --port ${MONGO_PORT}
 
-  # drface-engine-facenet:
-  #   container_name: drface-engine-facenet
-  #   image: openvino/model_server:2022.3
-  #   user: 1000:1000
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - $PWD${ENGINE_FACENET_MODEL_PATH}:${ENGINE_FACENET_MODEL_PATH}
-  #   ports:
-  #     - ${ENGINE_FACENET_GRPC_PORT}:${ENGINE_FACENET_GRPC_PORT}
-  #     - ${ENGINE_FACENET_REST_PORT}:${ENGINE_FACENET_REST_PORT}
-  #   expose:
-  #     - ${ENGINE_FACENET_GRPC_PORT}
-  #     - ${ENGINE_FACENET_REST_PORT}
-  #   command: |
-  #     --model_name ${ENGINE_FACENET_MODEL_NAME}
-  #     --model_path ${ENGINE_FACENET_MODEL_PATH}
-  #     --port ${ENGINE_FACENET_GRPC_PORT}
-  #     --rest_port ${ENGINE_FACENET_REST_PORT}
-  #     --target_device CPU
+  drface-engine-facenet:
+    container_name: drface-engine-facenet
+    image: openvino/model_server:2022.3
+    user: 1000:1000
+    env_file:
+      - .env
+    volumes:
+      - $PWD${ENGINE_FACENET_MODEL_PATH}:${ENGINE_FACENET_MODEL_PATH}
+    ports:
+      - ${ENGINE_FACENET_GRPC_PORT}:${ENGINE_FACENET_GRPC_PORT}
+      - ${ENGINE_FACENET_REST_PORT}:${ENGINE_FACENET_REST_PORT}
+    expose:
+      - ${ENGINE_FACENET_GRPC_PORT}
+      - ${ENGINE_FACENET_REST_PORT}
+    command: |
+      --model_name ${ENGINE_FACENET_MODEL_NAME}
+      --model_path ${ENGINE_FACENET_MODEL_PATH}
+      --port ${ENGINE_FACENET_GRPC_PORT}
+      --rest_port ${ENGINE_FACENET_REST_PORT}
+      --target_device CPU
 
-  # drface-engine-arcface:
-  #   container_name: drface-engine-arcface
-  #   image: openvino/model_server:2022.3
-  #   user: 1000:1000
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - $PWD${ENGINE_ARCFACE_MODEL_PATH}:${ENGINE_ARCFACE_MODEL_PATH}
-  #   ports:
-  #     - ${ENGINE_ARCFACE_GRPC_PORT}:${ENGINE_ARCFACE_GRPC_PORT}
-  #     - ${ENGINE_ARCFACE_REST_PORT}:${ENGINE_ARCFACE_REST_PORT}
-  #   expose:
-  #     - ${ENGINE_ARCFACE_GRPC_PORT}
-  #     - ${ENGINE_ARCFACE_REST_PORT}
-  #   command: |
-  #     --model_name ${ENGINE_ARCFACE_MODEL_NAME}
-  #     --model_path ${ENGINE_ARCFACE_MODEL_PATH}
-  #     --port ${ENGINE_ARCFACE_GRPC_PORT}
-  #     --rest_port ${ENGINE_ARCFACE_REST_PORT}
-  #     --target_device CPU
+  drface-engine-arcface:
+    container_name: drface-engine-arcface
+    image: openvino/model_server:2022.3
+    user: 1000:1000
+    env_file:
+      - .env
+    volumes:
+      - $PWD${ENGINE_ARCFACE_MODEL_PATH}:${ENGINE_ARCFACE_MODEL_PATH}
+    ports:
+      - ${ENGINE_ARCFACE_GRPC_PORT}:${ENGINE_ARCFACE_GRPC_PORT}
+      - ${ENGINE_ARCFACE_REST_PORT}:${ENGINE_ARCFACE_REST_PORT}
+    expose:
+      - ${ENGINE_ARCFACE_GRPC_PORT}
+      - ${ENGINE_ARCFACE_REST_PORT}
+    command: |
+      --model_name ${ENGINE_ARCFACE_MODEL_NAME}
+      --model_path ${ENGINE_ARCFACE_MODEL_PATH}
+      --port ${ENGINE_ARCFACE_GRPC_PORT}
+      --rest_port ${ENGINE_ARCFACE_REST_PORT}
+      --target_device CPU
