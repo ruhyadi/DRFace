@@ -87,6 +87,7 @@ class FaceRecognizerBase(ABC):
         ground_truths: List[EmbeddingGTSchema],
         dist_method: str = "cosine",
         dist_threshold: float = 0.5,
+        is_benchmark: bool = False,
     ) -> FaceRecognitionSchema:
         """
         Predict name of the person in the face image.
@@ -96,6 +97,7 @@ class FaceRecognizerBase(ABC):
             ground_truths (List[EmbeddingGTSchema], optional): Ground truths. Defaults to None.
             dist_method (str, optional): Distance method. Defaults to "cosine".
             dist_threshold (float, optional): Distance threshold. Defaults to 0.5.
+            is_benchmark (bool, optional): Is benchmarking. Defaults to False.
 
         Returns:
             FaceRecognitionSchema: Face recognition schema.
@@ -111,7 +113,15 @@ class FaceRecognizerBase(ABC):
         min_dist = min(dist)
         min_dist_idx = dist.index(min_dist)
         if min_dist > dist_threshold:
-            raise exception.NotFound("Face not matched with any face in database")
+            if is_benchmark:
+                return FaceRecognitionSchema(
+                    face=face,
+                    name="unknown",
+                    distance=min_dist,
+                    dist_method=dist_method,
+                )
+            else:
+                raise exception.NotFound("Face not matched with any face in database")
         return FaceRecognitionSchema(
             face=face,
             name=ground_truths[min_dist_idx].name,
@@ -169,35 +179,51 @@ class FaceRecognizerBase(ABC):
         """
         faces_dict = {f"face_{i}": face for i, face in enumerate(faces)}
         faces_embd = [
-            EmbeddingGTSchema(name=f"face_{i}", embedding=self.get_embedding(face))
+            EmbeddingGTSchema(name=f"{i}", embedding=self.get_embedding(face))
             for i, face in faces_dict.items()
         ]
 
-        preds = [
-            self.predict(face, faces_embd, dist_method="cosine", dist_threshold=0.5)
-            for i, face in faces_dict.items()
-        ]
+        results = []
+        for i in range(len(faces_embd)):
+            # exclude self
+            # log.info(f"Predicting {i} {faces_embd[i].name}...")
+            faces_embd_ = [
+                face_embd
+                for j, face_embd in enumerate(faces_embd)
+                if j != i
+            ]
+            preds = [
+                self.predict(face, faces_embd_, dist_method="cosine", dist_threshold=0.6, is_benchmark=True)
+                for i, face in faces_dict.items()
+            ]
+            results.append(preds[i])
 
-        log.debug(f"Groud truths: {[gt.name for gt in faces_embd]}")
-        log.debug(f"Predictions: {[pred.name for pred in preds]}")
+        # inverse unknown to ground truth name
+        for i, res in enumerate(results):
+            if res.name == "unknown":
+                results[i].name = faces_embd[i].name
+
+        log.info(f"Groud truths: {[gt.name for gt in faces_embd]}")
+        log.info(f"Predictions: {[res.name for res in results]}")
+        log.info(f"Distance: {[res.distance for res in results]}")
 
         accuracy = accuracy_score(
             y_true=[gt.name for gt in faces_embd],
-            y_pred=[pred.name for pred in preds],
+            y_pred=[res.name for res in results],
         )
         precision = precision_score(
             y_true=[gt.name for gt in faces_embd],
-            y_pred=[pred.name for pred in preds],
+            y_pred=[res.name for res in results],
             average="weighted",
         )
         recall = recall_score(
             y_true=[gt.name for gt in faces_embd],
-            y_pred=[pred.name for pred in preds],
+            y_pred=[res.name for res in results],
             average="weighted",
         )
         f1 = f1_score(
             y_true=[gt.name for gt in faces_embd],
-            y_pred=[pred.name for pred in preds],
+            y_pred=[res.name for res in results],
             average="weighted",
         )
 
