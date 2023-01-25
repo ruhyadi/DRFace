@@ -16,7 +16,9 @@ import cv2
 import numpy as np
 import tritonclient.grpc as grpcclient
 import tritonclient.http as httpclient
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
+from src.schema.benchmark_schema import FaceBenchmarkResponse
 from src.schema.face_recognition_schema import EmbeddingGTSchema, FaceRecognitionSchema
 from src.utils.exception import APIExceptions
 from src.utils.logger import get_logger
@@ -154,6 +156,59 @@ class FaceRecognizerBase(ABC):
         """
         face = self.preprocess_img(face)
         return self.inference(face)[0].tolist()
+
+    def benchmark(self, faces: List[np.ndarray]) -> FaceBenchmarkResponse:
+        """
+        Benchmark face recognition model.
+
+        Args:
+            faces (List[np.ndarray]): List of face images.
+
+        Returns:
+            FaceBenchmarkResponse: Benchmark response.
+        """
+        faces_dict = {f"face_{i}": face for i, face in enumerate(faces)}
+        faces_embd = [
+            EmbeddingGTSchema(name=f"face_{i}", embedding=self.get_embedding(face))
+            for i, face in faces_dict.items()
+        ]
+
+        preds = [
+            self.predict(face, faces_embd, dist_method="cosine", dist_threshold=0.5)
+            for i, face in faces_dict.items()
+        ]
+
+        log.debug(f"Groud truths: {[gt.name for gt in faces_embd]}")
+        log.debug(f"Predictions: {[pred.name for pred in preds]}")
+
+        accuracy = accuracy_score(
+            y_true=[gt.name for gt in faces_embd],
+            y_pred=[pred.name for pred in preds],
+        )
+        precision = precision_score(
+            y_true=[gt.name for gt in faces_embd],
+            y_pred=[pred.name for pred in preds],
+            average="weighted",
+        )
+        recall = recall_score(
+            y_true=[gt.name for gt in faces_embd],
+            y_pred=[pred.name for pred in preds],
+            average="weighted",
+        )
+        f1 = f1_score(
+            y_true=[gt.name for gt in faces_embd],
+            y_pred=[pred.name for pred in preds],
+            average="weighted",
+        )
+
+        log.info(f"Benchmark Results: {accuracy=}, {precision=}, {recall=}, {f1=}")
+
+        return FaceBenchmarkResponse(
+            accuracy=accuracy,
+            precision=precision,
+            recall=recall,
+            f1_score=f1,
+        )
 
     def get_matadata_io(self) -> tuple:
         """Get inputs and outputs from metadata."""

@@ -11,6 +11,8 @@ ROOT = pyrootutils.setup_root(
 
 import io
 import uuid
+import zipfile
+from typing import List
 
 import cv2
 import numpy as np
@@ -24,6 +26,7 @@ from src.engine.detector.ssd_detector import SSDFaceDetector
 from src.engine.recognizer.arcface_recognizer import ArcFaceRecognizer
 from src.engine.recognizer.facenet_recognizer import FaceNetRecognizer
 from src.schema.auth_schema import CurrentUser
+from src.schema.benchmark_schema import FaceBenchmarkRequest, FaceBenchmarkResponse
 from src.schema.enums_schema import DetectionModel, RecognitionModel
 from src.schema.face_detection_schema import FaceDetectionRequest, FaceDetectionResponse
 from src.schema.face_recognition_schema import (
@@ -277,6 +280,61 @@ class FaceRecognitionAPI(BaseAPI):
 
             return response
 
+        @self.router.post(
+            "/api/face/benchmark",
+            tags=["face"],
+            summary="Benchmark face recognition models",
+            description="Benchmark face recognition models",
+            dependencies=[Depends(self.bearer_auth)],
+            response_model=FaceBenchmarkResponse,
+        )
+        async def face_benchmark(
+            request: Request,
+            request_form: FaceBenchmarkRequest = Depends(),
+            current_user: CurrentUser = Depends(self.bearer_auth),
+        ):
+            """Face recognition benchmark."""
+            start_request = t.now_iso(utc=True)
+            request_id = str(uuid.uuid4())
+            log.log(24, f"Request from {request.client.host} to benchmark face")
+
+            # get user object
+            user = await self.mongodb.get_user(current_user.username)
+
+            # extract zip into images bytes
+            images_zip = await request_form.images_zip.read()
+            images_bytes = await self.extract_zip(images_zip)
+
+            # preprocess images
+            images = [await self.preprocess_raw_img(img) for img in images_bytes]
+            images = [img for img in images if img is not None]
+
+            # detect faces
+            face_dets = [self.ssd.detect_face(img)[0].face for img in images]
+
+            # benchmark
+            if request_form.model == RecognitionModel.facenet:
+                benchmark = self.facanet.benchmark(faces=face_dets)
+            elif request_form.model == RecognitionModel.arcface:
+                benchmark = self.arcface.benchmark(faces=face_dets)
+
+            end_request = t.now_iso(utc=True)
+            request_time = t.diff(start_request, end_request)
+
+            # logging to database
+            logs = LogSchema(
+                user_id=str(user.id),
+                request_id=request_id,
+                timestamp=start_request,
+                request_type="face_recognize",
+                request_data=jsonable_encoder(request_form),
+                response_data=jsonable_encoder(benchmark),
+                response_time=request_time,
+            )
+            await self.mongodb.insert_log(logs)
+
+            return benchmark
+
         app.include_router(self.router)
 
     async def preprocess_raw_img(self, raw_img: bytes) -> np.ndarray:
@@ -289,7 +347,28 @@ class FaceRecognitionAPI(BaseAPI):
         Returns:
             np.ndarray: Preprocessed image.
         """
-        img = Image.open(io.BytesIO(raw_img))
-        img = np.array(img)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return img
+        try:
+            img = Image.open(io.BytesIO(raw_img))
+            img = np.array(img)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return img
+        except Exception as e:
+            log.warning(f"Preprocess raw image failed: {e}")
+            return None
+
+    async def extract_zip(self, zip_file: bytes) -> List[bytes]:
+        """
+        Extract zip file.
+
+        Args:
+            zip_file (bytes): Zip file.
+
+        Returns:
+            List[bytes]: List of bytes.
+        """
+        # check if zip file in zip
+        if zipfile.is_zipfile(io.BytesIO(zip_file)):
+            with zipfile.ZipFile(io.BytesIO(zip_file)) as zip_file:
+                return [zip_file.read(name) for name in zip_file.namelist()]
+        else:
+            raise exceptions.BadRequest("Zip file is not valid")
